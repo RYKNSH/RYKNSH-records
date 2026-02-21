@@ -3,18 +3,16 @@
 The core loop: select_model → invoke_llm → log_usage
 """
 
-from __future__ import annotations
-
 import logging
 import uuid
-from typing import TYPE_CHECKING, Any, TypedDict
+from typing import Any, TypedDict
+
+from langchain_core.runnables import RunnableConfig
 
 import httpx
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, BaseMessage
 from langgraph.graph import END, StateGraph
-
-if TYPE_CHECKING:
-    from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +46,7 @@ class RouterState(TypedDict):
 # Nodes
 # ---------------------------------------------------------------------------
 
-def select_model(state: RouterState, config: dict | None = None) -> dict:
+def select_model(state: RouterState, config: RunnableConfig | None = None) -> dict:
     """Select the optimal LLM model based on request and tenant config.
 
     Priority:
@@ -93,7 +91,7 @@ def select_model(state: RouterState, config: dict | None = None) -> dict:
     }
 
 
-async def invoke_llm(state: RouterState, config: dict | None = None) -> dict:
+async def invoke_llm(state: RouterState, config: RunnableConfig | None = None) -> dict:
     """Invoke the selected LLM provider with automatic fallback."""
     from agent.providers import get_fallback, invoke_model
     from server.config import get_settings

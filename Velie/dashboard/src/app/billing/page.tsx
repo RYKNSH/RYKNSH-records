@@ -1,7 +1,9 @@
-import { Sidebar } from "@/components/sidebar";
-import { getDashboardStats } from "@/lib/data";
+"use client";
 
-export const revalidate = 30;
+import { Sidebar } from "@/components/sidebar";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
 const plans = [
     {
@@ -30,9 +32,59 @@ const plans = [
 
 const FREE_LIMIT = 5;
 
-export default async function BillingPage() {
-    const stats = await getDashboardStats();
+interface DashboardStats {
+    totalReviews: number;
+    criticalIssues: number;
+    repos: number;
+    apiCalls: number;
+}
+
+function BillingContent() {
+    const searchParams = useSearchParams();
+    const [stats, setStats] = useState<DashboardStats>({ totalReviews: 0, criticalIssues: 0, repos: 0, apiCalls: 0 });
+    const [upgradeMessage, setUpgradeMessage] = useState<string | null>(null);
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        fetch("/api/reviews")
+            .then((r) => r.json())
+            .then((reviews: { severity: string; repo_full_name: string }[]) => {
+                const repos = new Set(reviews.map((r) => r.repo_full_name));
+                setStats({
+                    totalReviews: reviews.length,
+                    criticalIssues: reviews.filter((r) => r.severity === "critical").length,
+                    repos: repos.size,
+                    apiCalls: reviews.length * 2,
+                });
+            })
+            .catch(() => { });
+
+        if (searchParams.get("upgraded") === "demo") {
+            setUpgradeMessage("🎉 Demo mode — Stripe integration coming soon!");
+        }
+    }, [searchParams]);
+
     const usagePercent = Math.min((stats.totalReviews / FREE_LIMIT) * 100, 100);
+
+    async function handleUpgrade(planName: string) {
+        setLoading(true);
+        try {
+            const res = await fetch("/api/billing/checkout", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ plan: planName.toLowerCase() }),
+            });
+            const data = await res.json();
+            if (data.demo) {
+                setUpgradeMessage(`🎉 ${planName} plan selected — Stripe checkout coming soon!`);
+            } else if (data.url) {
+                window.location.href = data.url;
+            }
+        } catch {
+            setUpgradeMessage("❌ Error creating checkout session");
+        }
+        setLoading(false);
+    }
 
     return (
         <div className="flex min-h-screen">
@@ -44,7 +96,14 @@ export default async function BillingPage() {
                     <p className="text-sm text-gray-500 mt-1">Manage your subscription and usage</p>
                 </div>
 
-                {/* Current Usage — REAL DATA */}
+                {/* Upgrade Message */}
+                {upgradeMessage && (
+                    <div className="glass p-4 mb-6 border-purple-500/30">
+                        <p className="text-sm text-purple-300">{upgradeMessage}</p>
+                    </div>
+                )}
+
+                {/* Current Usage */}
                 <div className="glass p-6 mb-8">
                     <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">Current Usage</h3>
                     <div className="flex items-end gap-2 mb-3">
@@ -53,13 +112,17 @@ export default async function BillingPage() {
                     </div>
                     <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
                         <div
-                            className={`h-full rounded-full transition-all ${usagePercent >= 80 ? "bg-gradient-to-r from-red-500 to-red-400" : "bg-gradient-to-r from-purple-500 to-purple-400"
+                            className={`h-full rounded-full transition-all ${usagePercent >= 80
+                                    ? "bg-gradient-to-r from-red-500 to-red-400"
+                                    : "bg-gradient-to-r from-purple-500 to-purple-400"
                                 }`}
                             style={{ width: `${usagePercent}%` }}
                         />
                     </div>
                     <p className="text-xs text-gray-600 mt-2">
-                        {usagePercent >= 100 ? "⚠️ Limit reached — upgrade to Pro" : `${FREE_LIMIT - stats.totalReviews} reviews remaining`}
+                        {usagePercent >= 100
+                            ? "⚠️ Limit reached — upgrade to Pro"
+                            : `${FREE_LIMIT - stats.totalReviews} reviews remaining`}
                     </p>
                 </div>
 
@@ -97,20 +160,29 @@ export default async function BillingPage() {
                             </ul>
 
                             <button
-                                className={`w-full py-2.5 rounded-xl text-sm font-medium transition-all ${plan.current
-                                        ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 cursor-default"
+                                onClick={() => !plan.current && handleUpgrade(plan.name)}
+                                disabled={plan.current || loading}
+                                className={`w-full py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer ${plan.current
+                                        ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 !cursor-default"
                                         : plan.recommended
                                             ? "bg-purple-500 hover:bg-purple-600 text-white hover:shadow-lg hover:shadow-purple-500/20"
                                             : "bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10"
                                     }`}
-                                disabled={plan.current}
                             >
-                                {plan.current ? "Current Plan" : "Upgrade"}
+                                {plan.current ? "Current Plan" : loading ? "Processing..." : "Upgrade"}
                             </button>
                         </div>
                     ))}
                 </div>
             </main>
         </div>
+    );
+}
+
+export default function BillingPage() {
+    return (
+        <Suspense fallback={<div className="flex min-h-screen"><Sidebar /><main className="flex-1 ml-64 p-8"><p className="text-gray-500">Loading...</p></main></div>}>
+            <BillingContent />
+        </Suspense>
     );
 }
