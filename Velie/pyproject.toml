@@ -5,6 +5,7 @@ description = "AI-powered code review agent for RYKNSH records — LangGraph + F
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "cryptography>=46.0.5",
     "fastapi>=0.129.0",
     "httpx>=0.28.1",
     "langchain-anthropic>=1.3.3",
@@ -14,7 +15,9 @@ dependencies = [
     "psycopg[binary]>=3.3.3",
     "pydantic-settings>=2.13.1",
     "pygithub>=2.8.1",
+    "pyjwt>=2.11.0",
     "python-dotenv>=1.2.1",
+    "redis>=7.2.0",
     "uvicorn>=0.41.0",
 ]
 

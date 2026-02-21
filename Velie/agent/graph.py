@@ -16,6 +16,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.graph import END, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
+from agent.github_app import get_auth_token
 from agent.prompts import REVIEW_USER_TEMPLATE, SYSTEM_PROMPT
 from server.config import get_settings
 
@@ -68,9 +69,9 @@ async def fetch_diff(state: QAState) -> dict:
     pr_number = state["pr_number"]
     url = f"https://api.github.com/repos/{repo}/pulls/{pr_number}"
 
-    cfg = get_settings()
+    token = await get_auth_token(state.get("installation_id"))
     headers = {
-        "Authorization": f"Bearer {cfg.github_token}",
+        "Authorization": f"Bearer {token}",
         "Accept": "application/vnd.github.v3.diff",
         "X-GitHub-Api-Version": "2022-11-28",
     }
@@ -136,9 +137,9 @@ async def post_review(state: QAState) -> dict:
     pr_number = state["pr_number"]
     url = f"https://api.github.com/repos/{repo}/issues/{pr_number}/comments"
 
-    cfg = get_settings()
+    token = await get_auth_token(state.get("installation_id"))
     headers = {
-        "Authorization": f"Bearer {cfg.github_token}",
+        "Authorization": f"Bearer {token}",
         "Accept": "application/vnd.github.v3+json",
         "X-GitHub-Api-Version": "2022-11-28",
     }

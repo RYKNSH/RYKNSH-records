@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import hmac
 import json
@@ -15,8 +16,13 @@ from agent.checkpointer import close_checkpointer, init_checkpointer
 from agent.graph import qa_agent, rebuild_with_checkpointer, QAState
 from agent.tenant import build_thread_id, resolve_tenant
 from server.config import get_settings
+from server.queue import close_queue, enqueue, init_queue
+from worker.consumer import consumer_loop
 
 logger = logging.getLogger(__name__)
+
+# Background worker task
+_worker_task: asyncio.Task | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -26,12 +32,29 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Initialize resources on startup, clean up on shutdown."""
+    global _worker_task
+
     # Startup
     checkpointer = await init_checkpointer()
     rebuild_with_checkpointer(checkpointer)
-    logger.info("Velie QA Agent started")
+
+    has_redis = await init_queue()
+    if has_redis:
+        _worker_task = asyncio.create_task(consumer_loop())
+        logger.info("Worker consumer task started")
+
+    logger.info("Velie QA Agent v0.3.0 started")
     yield
+
     # Shutdown
+    if _worker_task is not None:
+        _worker_task.cancel()
+        try:
+            await _worker_task
+        except asyncio.CancelledError:
+            pass
+
+    await close_queue()
     await close_checkpointer()
     logger.info("Velie QA Agent stopped")
 
@@ -39,7 +62,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Velie QA Agent",
     description="AI-powered code review bot for RYKNSH records",
-    version="0.2.0",
+    version="0.3.0",
     lifespan=lifespan,
 )
 
@@ -59,7 +82,7 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
 
 
 # ---------------------------------------------------------------------------
-# Background Task — Run the QA Agent
+# Background Task — Direct execution (fallback when no queue)
 # ---------------------------------------------------------------------------
 
 async def run_review(state: QAState, config: dict | None = None) -> None:
@@ -89,12 +112,15 @@ async def run_review(state: QAState, config: dict | None = None) -> None:
 async def health_check():
     """Health check endpoint."""
     from agent.checkpointer import get_checkpointer
+    from server.queue import _redis
     has_checkpointer = get_checkpointer() is not None
+    has_redis = _redis is not None
     return {
         "status": "ok",
         "service": "velie-qa-agent",
-        "version": "0.2.0",
+        "version": "0.3.0",
         "stateful": has_checkpointer,
+        "queue": "redis" if has_redis else "memory",
     }
 
 
@@ -117,10 +143,14 @@ async def github_webhook(
     if not verify_signature(body, x_hub_signature_256, get_settings().github_webhook_secret):
         raise HTTPException(status_code=401, detail="Invalid signature")
 
-    # 3. Parse payload from raw body (avoid double read via request.json())
+    # 3. Parse payload from raw body
     payload = json.loads(body)
 
-    # 4. Only process pull_request events (opened or synchronize)
+    # 4. Handle installation events (tenant auto-registration)
+    if x_github_event == "installation":
+        return await _handle_installation(payload)
+
+    # 5. Only process pull_request events (opened or synchronize)
     if x_github_event != "pull_request":
         return {"status": "ignored", "reason": f"Event type: {x_github_event}"}
 
@@ -128,24 +158,22 @@ async def github_webhook(
     if action not in ("opened", "synchronize", "reopened"):
         return {"status": "ignored", "reason": f"PR action: {action}"}
 
-    # 5. Extract PR data
+    # 6. Extract PR data
     pr = payload["pull_request"]
     repo = payload["repository"]
 
-    state: QAState = {
+    pr_data = {
         "pr_number": pr["number"],
         "repo_full_name": repo["full_name"],
         "pr_title": pr.get("title", ""),
         "pr_author": pr.get("user", {}).get("login", "unknown"),
         "pr_body": pr.get("body", "") or "",
         "installation_id": payload.get("installation", {}).get("id"),
-        "diff": "",
-        "review_body": "",
     }
 
-    # 6. Resolve tenant and build RunnableConfig
-    tenant = await resolve_tenant(state["installation_id"])
-    thread_id = build_thread_id(tenant.tenant_id, state["repo_full_name"], state["pr_number"])
+    # 7. Resolve tenant
+    tenant = await resolve_tenant(pr_data["installation_id"])
+    thread_id = build_thread_id(tenant.tenant_id, pr_data["repo_full_name"], pr_data["pr_number"])
 
     config = {
         "configurable": {
@@ -155,17 +183,47 @@ async def github_webhook(
         }
     }
 
-    # 7. Enqueue background review
-    background_tasks.add_task(run_review, state, config)
+    # 8. Enqueue or run directly
+    from server.queue import _redis
+    if _redis is not None:
+        # Queue mode: enqueue for worker
+        pr_data["_config"] = config
+        job_id = await enqueue(pr_data)
+        dispatch = f"queued (job={job_id})"
+    else:
+        # Direct mode: BackgroundTasks fallback
+        state: QAState = {**pr_data, "diff": "", "review_body": ""}
+        background_tasks.add_task(run_review, state, config)
+        dispatch = "background_task"
 
     logger.info(
-        "Queued review for PR #%d in %s (tenant: %s, action: %s)",
-        state["pr_number"], state["repo_full_name"], tenant.name, action,
+        "Queued review for PR #%d in %s (tenant: %s, dispatch: %s)",
+        pr_data["pr_number"], pr_data["repo_full_name"], tenant.name, dispatch,
     )
 
     return {
         "status": "queued",
-        "pr_number": state["pr_number"],
-        "repo": state["repo_full_name"],
+        "pr_number": pr_data["pr_number"],
+        "repo": pr_data["repo_full_name"],
         "tenant": tenant.name,
     }
+
+
+async def _handle_installation(payload: dict) -> dict:
+    """Handle GitHub App installation/uninstallation events."""
+    action = payload.get("action", "")
+    installation = payload.get("installation", {})
+    installation_id = installation.get("id")
+    account = installation.get("account", {}).get("login", "unknown")
+
+    if action == "created":
+        logger.info("GitHub App installed by %s (installation_id=%s)", account, installation_id)
+        # TODO: Auto-register tenant in Supabase
+        return {"status": "installed", "account": account}
+
+    elif action == "deleted":
+        logger.info("GitHub App uninstalled by %s (installation_id=%s)", account, installation_id)
+        # TODO: Deactivate tenant in Supabase
+        return {"status": "uninstalled", "account": account}
+
+    return {"status": "ignored", "reason": f"Installation action: {action}"}
