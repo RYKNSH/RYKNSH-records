@@ -3,18 +3,19 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import time
 import uuid
 from contextlib import asynccontextmanager
 
 from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from agent.checkpointer import close_checkpointer, init_checkpointer
 from agent.graph import router_graph, rebuild_with_checkpointer, RouterState
-from agent.providers import list_models
+from agent.providers import list_models, stream_model
 from agent.tenant import TenantConfig, build_thread_id, resolve_tenant_by_api_key
 from server.config import get_settings
 from server.queue import close_queue, enqueue, init_queue
@@ -106,7 +107,7 @@ class ChatCompletionRequest(BaseModel):
     messages: list[ChatMessage]
     temperature: float = Field(default=0.7, ge=0.0, le=2.0)
     max_tokens: int | None = None
-    stream: bool = False  # Not yet supported
+    stream: bool = False
 
 
 class ChatChoice(BaseModel):
@@ -178,8 +179,19 @@ async def chat_completions(
     tenant: TenantConfig = Depends(verify_api_key),
 ):
     """OpenAI-compatible chat completions endpoint."""
-    if request.stream:
-        raise HTTPException(status_code=400, detail="Streaming not yet supported")
+    from server.rate_limit import rate_limiter
+    from agent.graph import _convert_messages, select_model
+
+    # Rate limit check
+    allowed, retry_after = rate_limiter.check(
+        str(tenant.tenant_id), tenant.rate_limit_rpm
+    )
+    if not allowed:
+        return JSONResponse(
+            status_code=429,
+            content={"error": {"message": "Rate limit exceeded", "type": "rate_limit_error"}},
+            headers={"Retry-After": str(int(retry_after) + 1)},
+        )
 
     # Validate model if specified
     if request.model and request.model not in tenant.allowed_models:
@@ -191,7 +203,11 @@ async def chat_completions(
 
     request_id = str(uuid.uuid4())
 
-    # Build state
+    # --- Streaming mode ---
+    if request.stream:
+        return await _handle_streaming(request, tenant, request_id)
+
+    # --- Non-streaming mode ---
     state: RouterState = {
         "messages": [{"role": m.role, "content": m.content} for m in request.messages],
         "model": request.model,
@@ -206,7 +222,6 @@ async def chat_completions(
         "request_id": request_id,
     }
 
-    # Build config
     thread_id = build_thread_id(tenant.tenant_id, request_id)
     config = {
         "configurable": {
@@ -217,14 +232,12 @@ async def chat_completions(
         }
     }
 
-    # Execute the graph synchronously (API must return response)
     try:
         result = await router_graph.ainvoke(state, config=config)
     except Exception:
         logger.exception("LLM invocation failed for request %s", request_id)
         raise HTTPException(status_code=502, detail="LLM invocation failed")
 
-    # Build OpenAI-compatible response
     usage = result.get("usage", {})
     return ChatCompletionResponse(
         id=f"chatcmpl-{request_id}",
@@ -243,6 +256,84 @@ async def chat_completions(
             completion_tokens=usage.get("output_tokens", 0),
             total_tokens=usage.get("input_tokens", 0) + usage.get("output_tokens", 0),
         ),
+    )
+
+
+async def _handle_streaming(
+    request: ChatCompletionRequest,
+    tenant: TenantConfig,
+    request_id: str,
+) -> StreamingResponse:
+    """Handle streaming chat completions with SSE."""
+    from agent.graph import _convert_messages
+    from agent.providers import MODELS, get_model_spec
+    from server.config import get_settings
+
+    cfg = get_settings()
+
+    # Select model (simplified — no graph, direct selection)
+    model_id = request.model or tenant.default_model
+    if model_id not in MODELS:
+        model_id = tenant.default_model
+
+    # Convert messages
+    lc_messages = _convert_messages(
+        [{"role": m.role, "content": m.content} for m in request.messages]
+    )
+
+    async def sse_generator():
+        created = int(time.time())
+        try:
+            async for chunk in stream_model(
+                model_id,
+                lc_messages,
+                temperature=request.temperature,
+                max_tokens=request.max_tokens,
+                anthropic_api_key=cfg.anthropic_api_key,
+                openai_api_key=cfg.openai_api_key,
+            ):
+                if chunk["type"] == "token":
+                    data = {
+                        "id": f"chatcmpl-{request_id}",
+                        "object": "chat.completion.chunk",
+                        "created": created,
+                        "model": model_id,
+                        "choices": [{
+                            "index": 0,
+                            "delta": {"content": chunk["content"]},
+                            "finish_reason": None,
+                        }],
+                    }
+                    yield f"data: {json.dumps(data)}\n\n"
+                elif chunk["type"] == "done":
+                    # Final chunk with finish_reason
+                    data = {
+                        "id": f"chatcmpl-{request_id}",
+                        "object": "chat.completion.chunk",
+                        "created": created,
+                        "model": chunk.get("model", model_id),
+                        "choices": [{
+                            "index": 0,
+                            "delta": {},
+                            "finish_reason": "stop",
+                        }],
+                    }
+                    yield f"data: {json.dumps(data)}\n\n"
+                    yield "data: [DONE]\n\n"
+        except Exception as e:
+            logger.exception("Streaming error for request %s", request_id)
+            error_data = {"error": {"message": str(e), "type": "server_error"}}
+            yield f"data: {json.dumps(error_data)}\n\n"
+            yield "data: [DONE]\n\n"
+
+    return StreamingResponse(
+        sse_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
     )
 
 

@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, AsyncGenerator
 
 from langchain_core.messages import BaseMessage
 
@@ -184,3 +184,63 @@ async def _invoke_openai(
             "output_tokens": usage.get("output_tokens", 0),
         },
     }
+
+
+async def stream_model(
+    model_id: str,
+    messages: list[BaseMessage],
+    *,
+    temperature: float = 0.7,
+    max_tokens: int | None = None,
+    anthropic_api_key: str = "",
+    openai_api_key: str = "",
+) -> AsyncGenerator[dict[str, Any], None]:
+    """Stream LLM tokens one at a time.
+
+    Yields:
+        dict with either:
+        - {"type": "token", "content": "..."} for each token chunk
+        - {"type": "done", "model": "...", "usage": {...}} at the end
+    """
+    spec = MODELS.get(model_id)
+    if spec is None:
+        raise ValueError(f"Unknown model: {model_id}")
+
+    effective_max = max_tokens or spec.max_output_tokens
+
+    if spec.provider == "anthropic":
+        from langchain_anthropic import ChatAnthropic
+        llm = ChatAnthropic(
+            model=spec.model_id,
+            temperature=temperature,
+            max_tokens=effective_max,
+            api_key=anthropic_api_key,
+        )
+    elif spec.provider == "openai":
+        from langchain_openai import ChatOpenAI
+        llm = ChatOpenAI(
+            model=spec.model_id,
+            temperature=temperature,
+            max_tokens=effective_max,
+            api_key=openai_api_key,
+        )
+    else:
+        raise ValueError(f"Unknown provider: {spec.provider}")
+
+    total_content = ""
+    async for chunk in llm.astream(messages):
+        token = chunk.content
+        if token:
+            total_content += token
+            yield {"type": "token", "content": token}
+
+    yield {
+        "type": "done",
+        "model": spec.model_id,
+        "content": total_content,
+        "usage": {
+            "input_tokens": 0,  # Streaming doesn't always provide usage
+            "output_tokens": 0,
+        },
+    }
+

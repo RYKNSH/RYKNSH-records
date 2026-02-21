@@ -167,7 +167,7 @@ async def log_usage(state: RouterState) -> dict:
     # Persist to Supabase if configured
     if cfg.supabase_url and cfg.supabase_anon_key:
         try:
-            url = f"{cfg.supabase_url}/rest/v1/usage_logs"
+            url = f"{cfg.supabase_url}/rest/v1/ada_usage_logs"
             headers = {
                 "apikey": cfg.supabase_anon_key,
                 "Authorization": f"Bearer {cfg.supabase_anon_key}",

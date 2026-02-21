@@ -84,7 +84,7 @@ async def resolve_tenant_by_api_key(api_key: str) -> TenantConfig:
 
     # Query Supabase REST API for tenant by api_key
     try:
-        url = f"{cfg.supabase_url}/rest/v1/tenants"
+        url = f"{cfg.supabase_url}/rest/v1/ada_tenants"
         headers = {
             "apikey": cfg.supabase_anon_key,
             "Authorization": f"Bearer {cfg.supabase_anon_key}",
