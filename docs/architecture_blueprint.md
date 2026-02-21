@@ -15,6 +15,8 @@
    すべてのプロセス、アセット、意思決定の履歴をGitHubに集約し、それをトリガーとしてAIが自律稼働する。
 4. **True Multi-Tenancy (Inbound/Outbound Integration)**
    「内販（自社レーベル利用）」と「外販（SaaS顧客利用）」を分けない。全リクエストを単一のインフラ上で、SupabaseのRLSとLangGraphのConfigによって完全に分離・スケールさせる。
+5. **The Boundary Protocol (境界管理の絶対ルール)**
+   開発・デバッグ時において、担当ディレクトリ外のコード修正や、システム全体を動かしてのテストをシステム上・プロンプト上で固く禁じる。被害の波及（カスケーディング障害）を最小化する。
 
 ---
 
@@ -48,10 +50,10 @@ graph TD
         Orchestrator((Mothership Agent))
         
         subgraph Sub_Graphs["Subsidiary Graphs"]
-            QA[①品質保証AI Graph]
-            Prod[②制作会社 Graph]
-            Growth[③グロース Graph]
-            PR[④広報PR Graph]
+            QA[① Velie Graph]
+            Prod[② Lumina Graph]
+            Growth[③ Syndicate Graph]
+            PR[④ Vanguard Graph]
         end
     end
 

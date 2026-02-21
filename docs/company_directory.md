@@ -21,6 +21,16 @@ AIエージェントの短期記憶を長期記憶に変換する。
 - メインブランチ（`main`）には動くコードと確定したドキュメントのみをプッシュする。
 - 開発コンテキスト（その日話し合った設計の機微や、なぜその技術を選んだかなど）は `ctx/log` のようなOrphanブランチ等を利用してスナップショットとして残す。
 
+### 3. The Boundary Protocol (境界管理の絶対ルール)
+AIエージェントが親切心から他コンポーネントを修正し、システム全体を破壊（カスケーディング障害）することを防ぐためのデバッグ・スコープ管理ルール。
+
+1. **Directory Isolation (ディレクトリ分離の原則)**
+   現在担当している子会社のディレクトリ（例：`/Velie`）から一歩も外に出てはならない。他ディレクトリのコードは閲覧のみ許可され、修正は厳禁とする。
+2. **The Shared Library Rule (共有基盤変更の禁止)**
+   本社インフラ（`/Holdings`等）や共有DBスキーマの変更は、該当サブプロジェクトの開発中には絶対に行わない。必要な場合はFail Fastで停止する。
+3. **Test-Boundary Enforcement (テスト境界の強制)**
+   システム全体を動かしてデバッグしてはならない。必ず「対象コンポーネント単体のテスト（Unit Test）」を実行し、API境界を超えたエラーを発見した場合は、**相手のモックを作成して自領域のみ修正し、人間（CEO）へバグを報告する**。
+
 ---
 
 ## 🏢 Company Directory (子会社ディレクトリ)
@@ -32,12 +42,12 @@ RYKNSHホールディングスを構成する7つのAI子会社（LangGraphモ�
 |:---|:---|:---|:---|:---|
 | **0** | **RYKNSH records** | 本社・Orchestrator（全体指揮） | (なし) | `Planning` |
 | **1** | **Velie** (ヴェリー) | 品質保証 (QA)・コード検証 | Velie CI | `Sprint 1 準備中` |
-| **2** | **Lumina** (ルミナ) | AI 制作プロダクション (画像/動画) | Lumina Creative Studio | `Not Started` |
-| **3** | **Catalyst** (カタリスト) | グロース・マーケティング・自動営業 | Catalyst Growth Agent | `Not Started` |
-| **4** | **Aegis** (イージス) | 広報・炎上リスク管理・ブランド防衛 | Aegis Crisis Shield | `Not Started` |
-| **5** | **Core** (コア) | AI R&D・全エージェントのLLM/RAG基盤 | Core Agent Framework | `Not Started` |
-| **6** | **Stream** (ストリーム) | ファン参加型コミュニティと課金基盤 | Studio Stream | `Not Started` |
-| **7** | **Maison 01** (メゾン・ゼロワン) | 音楽レーベル・フラッグシップIP | (楽曲・音楽コンテンツ) | `Not Started` |
+| **2** | **Lumina** (ルミナ) | AI 制作プロダクション (画像/動画) | Lumina Studio | `Not Started` |
+| **3** | **Syndicate** (シンジケート) | グロース・マーケティング・自動営業 | Syndicate Growth | `Not Started` |
+| **4** | **Vanguard** (ヴァンガード) | 広報・炎上リスク管理・ブランド防衛 | Vanguard PR | `Not Started` |
+| **5** | **Braincell** (ブレインセル) | AI R&D・全エージェントの中枢基盤 | Braincell API | `Not Started` |
+| **6** | **Sonar** (ソナー) | ファンの熱狂を観測・集約する基盤 | Sonar | `Not Started` |
+| **7** | **Label 01** (レーベル・ゼロワン) | 音楽レーベル・フラッグシップIP | (音楽コンテンツ) | `Not Started` |
 
 ### 📂 Repository & Module Routing
 （実装開始後、各社がどのディレクトリ/リポジトリに配置されているかのパスをここに追記していきます。）
@@ -45,12 +55,12 @@ RYKNSHホールディングスを構成する7つのAI子会社（LangGraphモ�
 - **[0] RYKNSH records**: `/` (Mothership)
 - **[1] Velie**: `/Velie/` (TBD)
 - **[2] Lumina**: `/Lumina/` (TBD)
-- **[3] Catalyst**: `/Catalyst/` (TBD)
-- **[4] Aegis**: `/Aegis/` (TBD)
-- **[5] Core**: `/Core/` (TBD)
-- **[6] Stream**: `/Stream/` (TBD)
-- **[7] Maison 01**: `/Maison01/` (TBD)
+- **[3] Syndicate**: `/Syndicate/` (TBD)
+- **[4] Vanguard**: `/Vanguard/` (TBD)
+- **[5] Braincell**: `/Braincell/` (TBD)
+- **[6] Sonar**: `/Sonar/` (TBD)
+- **[7] Label 01**: `/Label01/` (TBD)
 
 ---
 *Last Updated: 2026-02-21*
-*Version: 1.0 (Project Navigator V10)*
+*Version: 1.1 (Project Navigator V11)*

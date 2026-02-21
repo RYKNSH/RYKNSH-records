@@ -27,7 +27,7 @@ RYKNSH recordsが生み出す全ての事業、プロダクト、そしてクリ
 誰もが自らの価値（創造性）を発揮し、他者の挑戦に熱狂し合える繋がりの連鎖が、最終的に「感動に満ちた平和な世界（World Peace）」を実現する。
 この景色に到達するために、天才たちの魂の軌跡をオープンソース化し、全人類の感情のポートフォリオを構築する。
 
-### ビジョンの到達指標（10年後）
+### ビジョンの到達指標（5年後）
 - 同時並走する独立IP: **1,000+**
 - 全世界の月間アクティブ参加者: **1億人**
 - 世界共通の感情インフラとしての定着
@@ -43,7 +43,7 @@ RYKNSH recordsが生み出す全ての事業、プロダクト、そしてクリ
 
 ### ミッションの3本柱
 - **Mad Editor**: AIを壁として配置し、人間の限界を突破させる。
-- **Open Process**: 制作過程（Github PR/Issue）を全公開し、ファンを観測者から参加者（応援者）へと変える。
+- **Open Process**: 制作過程（専用観測UI「Studio Stream」）を全公開し、ファンを観測者から参加者（応援者）へと変える。
 - **Zero Marginal Cost Scale**: AIによる限界費用ゼロ化で、あらゆる才能にプロデュース機会をスケールさせる。
 
 ---
@@ -59,32 +59,33 @@ RYKNSH recordsが生み出す全ての事業、プロダクト、そしてクリ
 
 ```
 RYKNSH records (Holdings / Mothership)
-├── ① Velie          — QA/検証（全社の品質基盤）
-├── ② 制作会社        — クリエイティブプロダクション
-├── ③ グロース会社     — マーケティング+営業の統合エンジン
-├── ④ 広報PR会社      — ブランド保護・信頼管理（独立ガバナンス）
-├── ⑤ テックラボ      — AI R&D（全社の武器庫）
-├── ⑥ コミュニティPF   — ファン接点UI・課金基盤（全社の顔）
-└── ⑦ 音楽レーベル     — 全社能力を結集した最終兵器
+├── ① 品質保証AI      — QA/検証（全社のコード品質基盤） [Velie]
+├── ② 制作会社        — クリエイティブプロダクション [Lumina]
+├── ③ グロース会社     — マーケティング+営業の統合エンジン [Syndicate]
+├── ④ 広報PR会社      — ブランド保護・信頼管理（独立ガバナンス） [Vanguard]
+├── ⑤ テックラボ      — AI R&D（全社の脳・LLMハブ） [Braincell]
+├── ⑥ コミュニティ     — ファンの熱狂と課金基盤 [Sonar]
+└── ⑦ 音楽レーベル     — フラッグシップIPの育成と実証実験 [Label 01]
 ```
 
 **設計原則**:
 1. 内販×外販の二刀流
 2. 循環型エコシステム（制作→グロース→広報→レーベルと価値が循環）
-3. Velieファースト（全社の品質ゲート）
+3. 品質ファースト（全社QAゲートによる最強の品質担保）
 4. バックエンド統合 / フロント分断（LVMHアーキテクチャ）
+5. **The Boundary Protocol (境界管理)**: 担当子会社のディレクトリから出ない、共有基盤を直接変えない、単体テスト境界を守るという「越権行為の禁止」を絶対ルールとし、カスケーディング障害を防ぐ。
 
 ### 4.2 収益戦略 — 内販×外販マトリクス
 
 | 会社 | 外販モデル | 内販役割 |
 |------|----------|---------|
 | ①Velie | QA SaaS ($99-499/月) | 全社CI/CDゲート |
-| ②制作社 | クリエイティブ受託 (¥5-100万) | アセット供給 |
-| ③グロース | Growth SaaS (¥5-50万/月) | 集客・営業 (CPA連動) |
-| ④広報PR | PR リテイナー (¥10-100万/月) | 信頼管理 |
-| ⑤テックラボ | AI基盤 OSS+マネージド ($199-999/月) | 武器供給 (従量課金) |
-| ⑥コミュニティPF | BtoB PaaS (¥5-50万/月) | 課金基盤 (PF手数料15-20%) |
-| ⑦レーベル | Process Pass (¥500-10,000/月) + スポンサー | ショーケース (貢献配当) |
+| ②Lumina | クリエイティブ受託 (¥5-100万) | アセット供給 |
+| ③Syndicate | Growth SaaS (¥5-50万/月) | 集客・営業 (CPA連動) |
+| ④Vanguard | PR リテイナー (¥10-100万/月) | 信頼管理 |
+| ⑤Braincell | AI Framework ($299-999/月) | 基盤提供 |
+| ⑥Sonar | コミュニティSaaS (¥10-50万/月) | 課金基盤 |
+| ⑦Label 01 | 音楽コンテンツ (都度/サブスク) | ショーケース |
 
 ### 4.3 顧客獲得戦略 — 4 Tierモデル
 
@@ -125,18 +126,18 @@ RYKNSH records (Holdings / Mothership)
 |-------|------|------|--------------|
 | 0 | 今 | 本社 | リポジトリ構築・ビジョン文書策定・LangGraph基盤設計 |
 | 1 | M1-3 | ① Velie | OSS公開・PLGで500 Stars目標・Product Huntローンチ |
-| 1.5 | M2-4 | ⑤ テックラボ | Agent Framework OSS公開・LangChainへのコントリビューション |
-| 2 | M3-6 | ② 制作会社 | AI Creative Studio MVP・MV Factory プロトタイプ |
-| 3 | M6-9 | ③ グロース社 | Growth Agent MVP・全社の集客エンジン稼働 |
+| 1.5 | M2-4 | ⑤ Braincell | Agent Framework OSS公開・LangChainへのコントリビューション |
+| 2 | M3-6 | ② Lumina | AI Creative Studio MVP・MV Factory プロトタイプ |
+| 3 | M6-9 | ③ Syndicate | Growth Agent MVP・全社の集客エンジン稼働 |
 | 3.5 | M7-10 | ⑥ コミュニティPF | Fan Platform MVP・課金エンジン構築 |
-| 4 | M9-12 | ④ 広報PR社 | AI Press Agent MVP・Crisis Shield プロトタイプ |
-| 5 | Y2~ | ⑦ レーベル | Maison 01 公開・Mad Editor V1稼働・ファン参加開始 |
+| 4 | M9-12 | ④ Vanguard | AI Press Agent MVP・Crisis Shield プロトタイプ |
+| 5 | Y2~ | ⑦ Label 01 | Maison 01 公開・Mad Editor V1稼働・ファン参加開始 |
 
-### 5.2 Phase 1 詳細（Velie立ち上げ）
+### 5.2 Phase 1 詳細（品質保証AI立ち上げ）
 
 | 週 | タスク | 成果物 |
 |----|-------|--------|
-| W1-2 | Velie CI コア開発 | GitHub Actions連携のAIテスト生成エンジン |
+| W1-2 | QA CI コア開発 | GitHub Actions連携のAIテスト生成エンジン |
 | W3-4 | Public Repo無料レビュー機能 | OSS公開・README・ドキュメント |
 | W5-8 | PLGインフラ構築 | セルフサーブ課金・プロダクト内AIチャット |
 | W9-10 | コンテンツマーケ開始 | テックブログ週2本（AI執筆）・OSS PR |
@@ -154,8 +155,8 @@ RYKNSH records (Holdings / Mothership)
 |---------|------|------|
 | オーケストレーション | LangGraph | マルチエージェントのState管理。Human-in-the-loop対応 |
 | LLM | Claude/GPT-4（マルチプロバイダー） | テックラボがルーティング最適化 |
-| コード管理 | GitHub | 全社のSingle Source of Truth。PR/Issueがエンタメ基盤に |
-| CI/CD | GitHub Actions + Velie CI | 全社のQAゲート |
+| コード管理 | GitHub | 全社のSingle Source of Truth。専用観測UI「Studio Stream」の裏側 |
+| CI/CD | GitHub Actions + 独自QAエージェント | 全社の品質ゲート |
 | インフラ | Vercel/Cloudflare Workers | エッジ配信。グローバル低レイテンシ |
 | DB | Supabase (PostgreSQL) | リアルタイムサブスクリプション。RLS |
 | 決済 | Stripe | グローバル対応。サブスク/従量課金 |

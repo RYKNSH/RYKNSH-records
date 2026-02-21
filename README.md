@@ -26,9 +26,9 @@
 │     ビジョン統括 / 法務・IP管理 / 経理 / 配信 / HR・スカウト(L0)    │
 │              LangGraph Central Orchestrator                     │
 ├────────┬────────┬────────┬────────┬────────┬────────┬────────────┤
-│①品質   │②制作社  │③グロース│④広報PR │⑤テック  │⑥コミュニ│⑦音楽       │
-│保証AI  │Creative│Mktg    │Comms   │ラボ     │ティPF   │レーベル     │
-│        │Prod.   │+Sales  │        │AI R&D  │        │Music Label │
+│①Velie  │②Lumina │③Syndicate│④Vanguard │⑤Braincell│⑥Sonar   │⑦Label 01   │
+│QA/検証  │Creative│Growth  │Crisis/PR  │AI R&D  │Community│Flagship IP │
+│        │Prod.   │+Sales  │        │        │        │Music Label │
 ├────────┼────────┼────────┼────────┼────────┼────────┼────────────┤
 │コード   │デザイン  │分析    │PR      │LLM     │ファンUI │Mad Editor  │
 │検証    │映像     │広告    │メディア │Fine-   │課金基盤 │A&R         │
@@ -48,20 +48,21 @@
 
 1. **内販×外販の二刀流** — グループ内サービスで安定収益 + 外部への専門サービス販売
 2. **循環型エコシステム** — 制作→グロース→広報→レーベルと価値が循環し再現不可能な競争優位を構築
-3. **品質ファースト** — 全社の品質を全社QAゲートが担保。通過しないコードは一行もデプロイされない
+3. **品質ファースト** — 全社の品質をVelieが担保。通過しないコードは一行もデプロイされない
+4. **The Boundary Protocol** — AIエージェントは自領域のディレクトリ外のコードを修正することを固く禁じられる
 
 ## 🗺️ Roadmap
 
 | Phase | Period | Company | Revenue Model |
 |-------|--------|---------|---------------|
 | 0 | Now | **本社 (RYKNSH records)** | — |
-| 1 | M1-3 | **① 品質保証AI** (QA/検証) | QA/テストSaaS |
-| 1.5 | M2-4 | **⑤ テックラボ** (AI R&D) | AI基盤SaaS |
-| 2 | M3-6 | **② 制作会社** | デザイン・映像受託 |
-| 3 | M6-9 | **③ グロース会社** (Mktg+Sales) | グロースSaaS |
-| 3.5 | M7-10 | **⑥ コミュニティPF** | BtoB PF |
-| 4 | M9-12 | **④ 広報PR会社** | PR代行 |
-| 5 | Y2~ | **⑦ 音楽レーベル** | コンテンツプラットフォーム |
+| 1 | M1-3 | **① Velie** (QA/検証) | QA/テストSaaS |
+| 1.5 | M2-4 | **⑤ Braincell** (AI R&D) | AI基盤SaaS |
+| 2 | M3-6 | **② Lumina** | デザイン・映像受託 |
+| 3 | M6-9 | **③ Syndicate** (Mktg+Sales) | グロースSaaS |
+| 4 | M9-12 | **④ Vanguard** (PR/防衛) | PR・危機管理SaaS |
+| 3.5 | M7-10 | **⑥ Sonar** (コミュニティ) | BtoB PF 手数料 |
+| 5 | Y2~ | **⑦ Label 01** | Content Sales / Subs |
 
 ## 📂 Repository Structure
 
