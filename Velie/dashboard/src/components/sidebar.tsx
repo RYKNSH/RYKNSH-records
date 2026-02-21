@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const navItems = [
-    { href: "/", label: "Overview", icon: "📊" },
+    { href: "/dashboard", label: "Overview", icon: "📊" },
     { href: "/reviews", label: "Reviews", icon: "🔍" },
     { href: "/settings", label: "Settings", icon: "⚙️" },
     { href: "/billing", label: "Billing", icon: "💳" },
@@ -35,8 +35,8 @@ export function Sidebar() {
                             key={item.href}
                             href={item.href}
                             className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all group ${isActive
-                                    ? "bg-purple-500/15 text-white border border-purple-500/20"
-                                    : "text-gray-400 hover:text-white hover:bg-white/5"
+                                ? "bg-purple-500/15 text-white border border-purple-500/20"
+                                : "text-gray-400 hover:text-white hover:bg-white/5"
                                 }`}
                         >
                             <span className={`text-lg transition-transform ${isActive ? "scale-110" : "group-hover:scale-110"}`}>
