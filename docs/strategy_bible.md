@@ -113,10 +113,10 @@ RYKNSH records (Holdings / Mothership)
 
 ---
 
-## 5. ロードマップ (Execution Timeline)
+## 5. ロードマップ (3-Month Hyper Execution)
 
-「垂直スライス」アプローチにより、AIエージェントが完成するごとに即座に外販（SaaSマネタイズ）を開始する。
-目標は **「最初の12ヶ月（1年間）で、社内業務を代替しつつ、6つのSaaSすべてを外部へ販売開始しマネタイズを完了させる」** こと。2年目（M13以降）にこれら最強のインフラを使って本来のレーベル（IP）事業で爆発的な利益を狙う。
+「垂直スライス」の極限化と「The Golden Template（基盤の完全流用）」により、SaaS開発プロセスを極限まで圧縮する。
+目標は **「最初の3ヶ月で、社内業務を代替しつつ、6つの自律型SaaSすべてを完成させ外販マネタイズを開始する」** こと。Month 4（M4）からは、これら最強の完成インフラを使って本来のレーベル（IP）事業で非連続な利益を狙う。
 
 > **「Spice up World — この地球（ほし）を、もっと面白く。するための持続可能な製品を世界中に広く普及させる」**
 
@@ -125,16 +125,13 @@ RYKNSH records (Holdings / Mothership)
 
 ### 5.1 立ち上げロードマップ
 
-| Phase | 期間 | 会社 | 具体アクション |
+| Phase | 期間 | 会社 (Agent) | 具体アクション |
 |-------|------|------|--------------|
-| 0 | 今 | 本社 | リポジトリ構築・ビジョン文書策定・LangGraph基盤設計 |
-| 1 | M1-3 | ① Velie | OSS公開・PLGで500 Stars目標・Product Huntローンチ |
-| 1.5 | M2-4 | ⑤ Ada | Agent Framework OSS公開・LangChainへのコントリビューション |
-| 2 | M3-6 | ② Lumina | AI Creative Studio MVP・MV Factory プロトタイプ |
-| 3 | M6-9 | ③ Cyrus | Growth Agent MVP・全社の集客エンジン稼働 |
-| 3.5 | M7-10 | ⑥ Noah | Fan Platform MVP・課金エンジン構築 |
-| 4 | M9-12 | ④ Iris | AI Press Agent MVP・Crisis Shield プロトタイプ |
-| 5 | Y2~ | ⑦ Label 01 | Maison 01 公開・Mad Editor V1稼働・ファン参加開始 |
+| 0 | 今 | 本社 | アーキテクチャ・Boundary Protocol・境界ルールの完全固定 |
+| 1 | M1 | ① Velie <br> ⑤ Ada | **【The Core Foundation】** <br> CI/CDパイプラインとLLMルーティングAPIの基盤構築・OSS公開 |
+| 2 | M2 | ② Lumina <br> ③ Cyrus | **【The Creative & Growth】** <br> M1基盤を流用した画像/動画生成と、全自動マーケティングの稼働 |
+| 3 | M3 | ⑥ Noah <br> ④ Iris | **【The Community & Defense】** <br> ファン課金PFの開始と、それに伴うブランド防衛・PR体制の確立 |
+| 4 | M4~ | ⑦ Label 01 | **【The Final Show】** <br> 6つの自律SaaSを駆使し、原価ゼロで最強の音楽IP群を連続リリース |
 
 ### 5.2 Phase 1 詳細（品質保証AI立ち上げ）
 
