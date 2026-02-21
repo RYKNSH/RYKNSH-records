@@ -1,0 +1,30 @@
+"""Velie QA Agent — Entry Point."""
+
+import logging
+
+import uvicorn
+
+from server.config import get_settings
+
+
+def main():
+    """Run the Velie QA Agent server."""
+    cfg = get_settings()
+    logging.basicConfig(
+        level=getattr(logging, cfg.log_level.upper(), logging.INFO),
+        format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+
+    uvicorn.run(
+        "server.app:app",
+        host="0.0.0.0",
+        port=cfg.port,
+        reload=True,
+        log_level=cfg.log_level,
+    )
+
+
+if __name__ == "__main__":
+    main()
+
