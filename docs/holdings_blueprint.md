@@ -1001,6 +1001,100 @@ graph TD
 素晴らしい。UI側（フロント）とAI側（バックエンド）がSupabaseとGitHubを挟んで完全に疎結合になっているため、ファン向けUIを何度作り直しても、裏で動いているAI達のロジックには一切影響がない。これは保守コストを劇的に下げる。
 
 ---
+---
+---
+
+# 🌐 Scale Architecture: 内販と外販の完全な共通基盤化
+
+**🤖 Moderator**:
+Blueprint V7は全体構造を描いたが、「スケール前提でこの設計が内販と外販を共通基盤でどう完全に包摂できるか」という視点が弱い。例えば品質保証AI（Velie）は、社内レーベル（内販）と世界中10万社のSaaS顧客（外販）のリクエストを全く同じコードベースでどう分離・課金・処理・スケールさせるのか？**Architect**と**Elon**で深掘りする。
+
+---
+
+### 🔄 Round 13: Multi-tenant Scale Architecture
+
+**🏛️ Architect**:
+ズバリ結論から言うと、**内販（グループ会社からの利用）も外販（外部SaaS顧客からの利用）も、システム上は「完全に同一のTenant（顧客）」として扱う**。
+「内販用のシステム」と「外販用のシステム」を分けることは技術的負債の溫床になる。RYKNSH recordsという「グループ内の顧客」も、外部のSaaS顧客と同じ『ID：0001』の一顧客に過ぎない。
+
+これを実現するのが **SupabaseのRLS (Row Level Security) × Multi-tenancy** と、**LangGraphのConfigurable State** の組み合わせだ。
+
+#### 1. Database Multi-tenancy (Supabase)
+
+すべてのテーブル（例えば `ReviewRequests`, `GeneratedAssets`, `Conversations`）には必ず `tenant_id` カラムを持たせる。
+
+```sql
+CREATE TABLE review_requests (
+  id uuid primary key,
+  tenant_id uuid references tenants(id), -- ここが全てを分ける
+  repo_url text,
+  status text
+);
+
+-- RLSポリシー：自分のテナントのデータしか絶対に見えない
+ALTER TABLE review_requests ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Tenants can view own requests" ON review_requests
+  FOR SELECT USING (auth.jwt() ->> 'tenant_id' = tenant_id::text);
+```
+
+**💰 CFO**:
+なるほど。RYKNSH本社が品質保証AI（Velie）を使う時も、Mothership Agentは『RYKNSHのTenant ID』をもったTokenでAPIを叩くわけだ。
+そうすれば、月末の「内販利用料（移転価格）」の計算も、外部顧客へのStripeのAPI課金計算も、**『全テナントの当月APIコール数を集計する』という全く同じ一本のSQLで完結する**。会計の透明性が極めて高い。
+
+#### 2. AI Execution Separation (LangGraph Config)
+
+**🚀 Elon**:
+DBの分離は分かった。でもAI（LangGraph）の実行はどうだ？
+エンタープライズ顧客A社は「セキュリティガチガチの厳しいレビュー（Claude 3 Opus）」を望み、無料TierのB社は「高速で安いレビュー（GPT-3.5）」を望む。さらにRYKNSHレーベル（内販）は「Mad Editorのような狂気のレビュー」を望むかもしれない。
+同じ1つのAgentコードベースで、どうやって振る舞いを変える？
+
+**🏛️ Architect**:
+LangGraphの `RunnableConfig` をフル活用する。エージェントは1つの巨大なコード（Graph）だが、実行時に渡される `tenant_id` に応じて振る舞いやLLMプロンプトを動的に切り替えるインジェクション構造にする。
+
+```python
+# LangGraph実行時のイメージ
+config = {
+    "configurable": {
+        "tenant_id": "req.tenant_id",
+        "llm_model": "tenant_settings.model_preference", # GPT-4o or Claude-3.5-Sonnet
+        "persona_prompt": "tenant_settings.custom_system_prompt",
+        "thread_id": "unique_thread_for_this_pr"
+    }
+}
+graphs["quality_assurance_ai"].invoke(inputs, config)
+```
+
+この `tenant_settings`（テナント毎の設定）は、Supabaseから毎回フェッチしてLangGraphのContextに注入する。
+つまり**「AIのコードは全顧客1つ。設定（魂）だけがテナントごとに注入される」** という完全なSaaSアーキテクチャだ。
+
+#### 3. Scaling out (Serverless & Queues)
+
+**🤔 Skeptic**:
+10万テナントが同時に処理を投げたら？LangGraphはステートフルなので、普通にAPIとして公開するとすぐにサーバーのメモリが溢れるぞ。
+
+**🏛️ Architect**:
+そのため、すべての外部/内部リクエストは直接LangGraphを叩かない。
+**Webhook → Message Queue (Redis / AWS SQS) → Worker (LangGraph)** という非同期キューアーキテクチャを敷く。
+
+1. **GitHubからのWebhook** (内販も外販も同じ)
+2. FastAPIエッジサーバーが受け取り、認証(JWT)して **Queue** に積む（1秒で完了）。
+3. 裏で動いている数百台（自動スケール）の **Worker Container** がQueueからタスクを拾い、LangGraphを実行する。
+4. 完了したらSupabaseのステータスをUPDATE。
+5. フロントエンド（Studio Streamなど）やGitHubは、完了をRealtime SubscriptionやWebhookで受け取る。
+
+これなら、リクエストが1万件来てもQueueに溜まるだけで、システムが落ちることは決してない。限界費用ゼロの無限スケールだ。
+
+#### 4. 内販外販統合のメリット
+
+**🎩 Bernard**:
+この構造の最も美しい点は、**レーベル（自社）のために開発した「Mad Editorの狂気レビュー機能」が、デプロイした瞬間に外部SaaSのエンタープライズ顧客の管理画面にも「追加機能」としてチェックボックス1つで提供される**ことだ。
+
+RYKNSHレーベルが過酷な環境で新機能をR&Dし、それがシームレスに全外販顧客に降ってくる。顧客体験（CX）の向上が極めて速い。
+
+**🚀 Elon**:
+完璧だ。「内販用」「開発用」「外販用」なんてものは分けない。**すべてのプロセス、すべてのアセット、すべてのエージェント呼び出しは、Muti-tenant SaaSの1リクエストとして裁かれる。** これがTrue Scaleだ。
+
+---
 **Debate Quality Score**: MAX
 **Consensus Reached**: Yes
 *(End of Process)*

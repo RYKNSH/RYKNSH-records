@@ -13,6 +13,8 @@
    AIの「記憶（State）」と「ビジネスデータ（Metadata）」をPostgreSQL上で分離統合する。
 3. **Single Source of Truth (GitHub)**
    すべてのプロセス、アセット、意思決定の履歴をGitHubに集約し、それをトリガーとしてAIが自律稼働する。
+4. **True Multi-Tenancy (Inbound/Outbound Integration)**
+   「内販（自社レーベル利用）」と「外販（SaaS顧客利用）」を分けない。全リクエストを単一のインフラ上で、SupabaseのRLSとLangGraphのConfigによって完全に分離・スケールさせる。
 
 ---
 
@@ -55,15 +57,22 @@ graph TD
 
     %% Connections
     Fan <-->|WebSockets (Realtime) / REST| UI
+    SaaS_Customer[SaaS Customer] -->|Push/PR / API| Repo
     UI <-->|Fetch Meta/State via RLS| Storage
     UI <-->|Fetch Commits/PRs| Repo
     
     Developer -->|Push/PR| Repo
     Repo -->|Webhook Trigger| GH_Actions
-    GH_Actions -->|Invoke FastAPI/Webhook| HoldingSystem
+    GH_Actions -->|Enqueue Event| MsgQueue
     
-    HoldingSystem <-->|Read/Write Checkpoints| State
-    HoldingSystem <-->|Read/Write Meta & Vectors| DB
+    subgraph Async_Queue["Serverless Queue Layer"]
+        MsgQueue[[Message Queue (Redis/SQS)]]
+    end
+    
+    MsgQueue -->|De-queue| HoldingSystem
+    
+    HoldingSystem <-->|Read/Write Checkpoints (Tenant Scoped)| State
+    HoldingSystem <-->|Read/Write Meta & Vectors (Tenant Scoped)| DB
     
     Orchestrator -->|Dispatch Sub-tasks| QA
     Orchestrator -->|Dispatch Sub-tasks| PR
@@ -77,27 +86,26 @@ graph TD
 
 ## 3. コンポーネント詳細
 
-### 3.1 Orchestration Layer (LangGraph)
+### 3.1 Orchestration & Agent Layer (LangGraph)
 Mothership Agent（L0）が中央指揮を取り、各子会社の機能特化Graph（L1）を呼び出す階層構造。
 
-- **Mothership Agent**: 楽曲のリリースや炎上検知などのトップレベルイベントを受け取り、「広報AIにプレスリリースを書かせる」「制作AIにジャケットを生成させる」といった指示を非同期にディスパッチする。
-- **Subsidiary Graphs**: 個別の業務ロジックをカプセル化。例えば広報Graphは「リサーチ→ドラフト作成→レビュー→配信」という内部ステートマシンを持つ。
-- **ヒューマンインザループ (Human-in-the-loop)**: LangGraphの `interrupt_before` を活用し、重要地点（リリース承認や大口決済）では人間のアーティストや経営陣の承認を待機する。
+-   **Multi-Tenant Injection**: 全テナント（自社レーベルや外部SaaS顧客）は全く同じAgentコードを実行するが、呼び出し時に `RunnableConfig` で `tenant_id` を注入し、システムプロンプト（人格）やLLMプロバイダを動的に切り替える。
+-   **Mothership Agent**: 楽曲のリリースや炎上検知などのトップレベルイベントを受け取って処理。
+-   **ヒューマンインザループ**: LangGraphの `interrupt_before` を活用し、重要地点（リリース承認や大口決済）では人間の承認を待機する。
 
 ### 3.2 Data Layer (Supabase / PostgreSQL)
-LangGraphとフロントエンドの橋渡しを行う強固なデータ基盤。
+LangGraphとフロントエンドの橋渡しを行う強固なデータ基盤とマルチテナンシーの核。
 
-- **Checkpointer State**: `AsyncPostgresSaver` を用いて、全Agentのスレッド状態、会話履歴、内部変数を完全永続化。サーバーが再起動しても途中から再開可能。
-- **Business Data**: 楽曲メタデータ、IPのパラメータ、生成されたアセットURL。
-- **Realtime Subscription**: ファン向けUI（Studio Stream）はSupabaseを購読することで、AIが生成プロセスを進める様子をリアルタイムタイムラインとして観測できる。
-- **Row Level Security (RLS)**: 
-  - AIバックエンド: `Service Role Key` でフルアクセス。
-  - フロントエンド(ファン): `Anon Key + JWT`。
-  - アプリのAPIサーバーを書くことなく、「VIP課金フィルター」や「特定プロジェクトの閲覧権限」をPostgreSQLレイヤーで強固に制御。
+-   **Row Level Security (RLS)**: 
+    「内販（RYKNSH）」も「外販顧客A社」も同じテーブルに入る。RLSによって、JWTトークン内の `tenant_id` に紐づくデータ以外はPostgreSQLレベルで不可視化される。専用のAPIサーバーを書く必要がなく、強固なDBレベルの分離を実現する。
+-   **Checkpointer State**: `AsyncPostgresSaver` を用いて全Agentのスレッド状態を永続化。
+-   **Business Data**: 楽曲メタデータ、IPのパラメータ、S3 URL。
+-   **Realtime Subscription**: ファン向け観測UI「Studio Stream」のバックエンドとして、AI同士の議論をリアルタイム配信。
 
-### 3.3 Infrastructure & GitOps (GitHub)
-- **SSOT (Single Source of Truth)**: 全てのアセット（音声データ、画像、コード）と歴史はGitHubリポジトリに保存。
-- **自律的CI/CD**: 人間やAIがPull Requestを作成すると、GitHub Actionsがトリガーされ、品質保証AI（Velieモジュール）がコードやアセットのレビューを完全自動で行い、条件を満たせばマージする。
+### 3.3 Infrastructure & GitOps (GitHub + Message Queue)
+-   **SSOT**: 全てのアセット（コード、動画、音声）のマスターはGitHub。
+-   **自律的CI/CD**: GitHub Actionsがトリガーされ、完了を待たずに非同期キュー（Message Queue）にリクエストを投げる。
+-   **Serverless Worker Scaling**: Queueに溜まったリクエストを数百台のワーカーが非同期で処理（LangGraph実行）するため、リクエストがバーストしてもシステムは決して落ちない。限界費用ゼロの無限スケールを実現する。
 
 ---
 
@@ -118,4 +126,4 @@ LangGraphとフロントエンドの橋渡しを行う強固なデータ基盤�
 
 ---
 *Last Updated: 2026-02-21*
-*Version: 1.0 (Blueprint V7)*
+*Version: 1.1 (Scale Blueprint V8)*
