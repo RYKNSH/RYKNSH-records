@@ -2,12 +2,20 @@
 
 > アーティスト以外全員AI — LangGraph × Github × First Principles で世界最大のエンタメホールディングスへ
 
-## 🎯 Vision
-「天才たちの魂の軌跡をオープンソース化し、全人類の感情のポートフォリオを構築する」
+## 1. 理念（Philosophy）
+> **「Gift & Receive — 与えることそのものが喜びの文化を創る」**
 
-## 🚀 Mission
-「最高峰のAI知能（フロント）と限界費用ゼロの資本（バック）を融合し、表現者の生態系を再定義する」
+## 2. ビジョン（Vision）
+> **「World Peace — 感動に満ちた平和な世界」**
 
+## 3. ミッション（Mission）
+> **「Power to the People — 人々に底なしの感動を与える」**
+
+## 4. 戦略（Strategy）
+> **「Unlock People Value — 人々の既に持っているはずの価値をアンロックする」**
+
+## 5. 戦術（Tactics）
+> **「Spice up World — この地球（ほし）を、もっと面白くするための持続可能な製品を世界中に広く普及させる」**
 ---
 
 ## 🏢 Holdings Structure（7子会社 + 本社）
