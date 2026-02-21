@@ -128,6 +128,7 @@ RYKNSH records (Holdings / Mothership)
 | Phase | 期間 | 会社 (Agent) | 具体アクション |
 |-------|------|------|--------------|
 | 0 | 今 | 本社 | アーキテクチャ・Boundary Protocol・境界ルールの完全固定 |
+| 0.5 | M0 | 本社 / 全社 | **【SOTA Research & Scaffolding】** <br> スキル・最新論文の徹底リサーチと、Boundary Protocolを物理強制する全社空リポジトリ構造の構築 |
 | 1 | M1 | ① Velie <br> ⑤ Ada | **【The Core Foundation】** <br> CI/CDパイプラインとLLMルーティングAPIの基盤構築・OSS公開 |
 | 2 | M2 | ② Lumina <br> ③ Cyrus | **【The Creative & Growth】** <br> M1基盤を流用した画像/動画生成と、全自動マーケティングの稼働 |
 | 3 | M3 | ⑥ Noah <br> ④ Iris | **【The Community & Defense】** <br> ファン課金PFの開始と、それに伴うブランド防衛・PR体制の確立 |

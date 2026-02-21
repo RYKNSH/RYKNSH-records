@@ -56,6 +56,7 @@
 | Phase | Period | 会社 (Agent) | 提供SaaS・役割 |
 |-------|--------|---------------|---------------|
 | 0 | Now | **本社 (RYKNSH records)** | 全社アーキテクチャ・メタ定義 |
+| 0.5 | M0 | **本社 (RYKNSH records)** | 境界ルールの全社空リポ構築・SOTAリサーチ |
 | 1 | M1 | **① Velie** & **⑤ Ada** | QA/CI SaaS & AI API基盤 |
 | 2 | M2 | **② Lumina** & **③ Cyrus** | クリエイティブ受託 & グロースSaaS |
 | 3 | M3 | **⑥ Noah** & **④ Iris** | ファン課金PF & PR危機管理SaaS |

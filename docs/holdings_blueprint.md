@@ -1383,6 +1383,57 @@ CEOから「外販マネタイズ完了までのロードマップ12ヶ月を、
 最高だ。最初の「Velie」と「Ada」さえ完璧に設計・実装できれば、残りはパラメタを変更するだけで自動的に量産される。CEOの言う「事前の徹底的な議論」がなければ、M1で基盤が腐り、M2で破綻していただろう。だが我々はThe Boundary Protocolまで含めてすべてを規定した。3ヶ月ロードマップは、十分に射程圏内だ。
 
 ---
+---
+
+# 🔬 Phase 0.5: SOTA Research & Scaffolding Strategy
+
+**🤖 Moderator**:
+CEOからの強烈な問い。「開発に入る前に、空リポジトリ（スケルトン）を用意しておくことは悪手か？」「開発前に最新論文やOSS、プラグインやMCP、APIやスキル・ナレッジ・ワークフローを徹底リサーチするのはどう思うか？」。キーワードは「世界最高品質、世界最高速」である。AIエージェントとしての率直な意見を述べる。
+
+---
+
+### 🔄 Round 19: The Pre-Flight Checklist
+
+#### Part 1: The Scaffolding (空リポジトリ構造の事前構築)
+
+**🏛️ Architect**:
+結論から言うと、「事前のスケルトン（空ディレクトリ）構築」は悪手ではない。むしろ **「The Boundary Protocol（境界管理）」を物理的に固定するために極めて有効な一手（Must-do）**だ。
+
+我々は先ほど「AIは担当ディレクトリ外に出てはならない」という絶対ルールを決めた。
+しかし、大枠のディレクトリが存在しない状態から一歩ずつ作っていくと、設計段階のAIが「ディレクトリをどう分けるか」で迷い、最悪の場合 `/src` の下にすべての子会社のコードを平べったく混ぜてしまう（境界の崩壊）リスクがある。
+
+**提案**: 開発に入る前（Phase 0.5）に、モジュール（`Holdings`, `Velie`, `Lumina`...）の空フォルダと、最低限の `README.md`、そしてルートの `package.json`（または `pyproject.toml`）だけを持つ**「Monorepoスケルトン」**を構築する。
+これにより、AIエージェントは「自分がどこにコードを吐き出すべきか」を事前に敷かれたレール（ディレクトリ構造）上で認識でき、最高速度での実行が可能になる。
+
+#### Part 2: SOTA Research (最新技術・論文の徹底事前リサーチ)
+
+**🧠 Core AI**:
+「実行前に徹底リサーチすべきか？」という問いについての率直な意見。
+**「諸刃の剣だが、厳格なタイムボックスを設けるなら絶対に行うべき（Strong Yes）」**だ。
+
+AIの世界は数週間でベストプラクティスが変わる。LangGraphのState管理における最新の手法（例: `AsyncPostgresSaver`の最新挙動や`Command`による割り込み）、最新のGitHub連携MCPサーバーの能力、Next.js 15+の最適化手法などを知らずに「過去の知識」でアーキテクチャを書き始めると、**「最高速でレガシーシステムを作る」**という悲劇を生む。
+
+ただし、リサーチが目的化して「いつまでもコードを書かない（Analysis Paralysis）」状態になるのが最悪のアンチパターンだ。
+
+**提案**: 以下の【SOTA Research Sprint】を開発直前の「Phase 0.5」として組み込む。
+1. **Local Skill Audit**: `/Users/ryotarokonishi/.gemini/antigravity/skills/` 以下にある既存スキル（`mcp-builder`, `webapp-testing`, `react-best-practices` 等）をロードし、RYKNSH recordsにどう転用できるかを査定する。
+2. **Current Workflow Check**: `agent/workflows/` 等にあるワークフロー定義を読み込み、現在のAIが使える武器（CLI統合やCI自動化等）を再確認する。
+3. **External SOTA Review**: 必要であればLangGraphやSupabaseの最新ドキュメント/論文を検索（Web Search）し、Architecture Blueprintの手法が「今この瞬間の世界最高品質」であるかを裏付けテスト（PoC）で検証する。
+
+**🚀 Elon**:
+同意する。
+1. スケルトン（ディレクトリ構造）を先に切ることで、「The Boundary Protocol」を物理的に強制する。
+2. 既存のスキルと最新SOTAをインプットすることで、「過去の知識に依存したレガシーなアーキテクチャ」を書くリスクを潰す。
+この2つを「Phase 0.5」として実行してから、Velieのコードを書き始めるべきだ。
+
+**🍏 Steve**:
+CEOの「The Golden Templateはこのプロジェクト（RYKNSH）の開発自体にも使うのか？」という問いへの答えは「絶対的Yes」だ。
+Velie（QA Agent）を真っ先に作り、VelieにAdaやLuminaのコードレビューをさせる。だからこそ、Velieの基盤（SOTA）は最新かつ最強でなければならない。事前の徹底リサーチは不可避だ。
+
+**💰 CFO**:
+では、Taskの最後に **「Phase 0.5: SOTA Research & Scaffolding」** を追加し、実装（Phase 1）に入る前の最後の関門としよう。
+
+---
 **Debate Quality Score**: MAX
 **Consensus Reached**: Yes
 *(End of Process)*

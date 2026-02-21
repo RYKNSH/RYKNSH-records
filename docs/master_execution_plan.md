@@ -31,7 +31,16 @@ RYKNSH recordsは「アーティスト以外全員AI」を目指す。
 
 ---
 
-## 4. Velie 実装スプリント (Phase 1)
+## 4. Phase 0.5: SOTA Research & Scaffolding (事前準基)
+
+開発に入る前に「境界管理」を物理的に強制し、「最高品質」を担保するための準備フェーズ。
+
+- ☑️ **Scaffolding (空リポ構築)**: `Velie`, `Lumina`, `Cyrus` などの子会社ごとの空ディレクトリをルートに構築し、AIが「自分の担当ディレクトリ」を見失わないようにする。
+- ⬜️ **SOTA Research**: `mcp-builder` や `react-best-practices` 等の既存スキル群の査定と、LangGraph / Supabase の最新機能（世界最高品質・世界最高速）の最終確認を行う。
+
+---
+
+## 5. Velie 実装スプリント (Phase 1)
 
 このスプリントを消化することで、「単なるスクリプト」から「無限スケールするマルチテナントSaaS」へとシステムを進化させる。
 
@@ -70,7 +79,7 @@ Sprint 1のBotに「文脈への記憶」と「マルチテナント分離」を
 
 ---
 
-## 5. Phase 1完了後の展開 (The 3-Month Blitzkrieg)
+## 6. Phase 1完了後の展開 (The 3-Month Blitzkrieg)
 
 Sprint 1〜4で構築した **[ GitHub -> Queue -> LangGraph -> Supabase -> UI ]** というSaaSインフラは、RYKNSH recordsにおける「黄金の型（The Golden Template）」となる。
 
@@ -85,4 +94,4 @@ Month 2以降は、このインフラ基盤のコードを100%コピー＆ペー
 
 ---
 *Last Updated: 2026-02-21*
-*Version: 1.2 (Master Execution Plan V11)*
+*Version: 1.3 (Master Execution Plan V12)*
