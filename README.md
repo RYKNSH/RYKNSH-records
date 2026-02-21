@@ -1,57 +1,63 @@
 # RYKNSH records
 
-> 音楽業界の「少年ジャンプ」— アーティスト以外全員AIのレコードレーベル
+> アーティスト以外全員AI — LangGraph × Github × First Principles で世界最大のエンタメホールディングスへ
 
 ## 🎯 Vision
 「天才たちの魂の軌跡をオープンソース化し、全人類の感情のポートフォリオを構築する」
 
-LangGraph × Github × First Principles で、レコードレーベル最大手以上の規模へ。
-
-## 🏗️ Architecture
-
-```
-┌─────────────────────────────────────────────────┐
-│              RYKNSH records (Mothership)         │
-│         法務・流通・データインフラ (中央AI)          │
-├─────────┬─────────┬─────────┬─────────┬─────────┤
-│Maison 01│Maison 02│Maison 03│   ...   │Maison N │
-│ (IP A)  │ (IP B)  │ (IP C)  │         │ (IP N)  │
-│         │         │         │         │         │
-│ Mad     │ Mad     │ Mad     │         │ Mad     │
-│ Editor  │ Editor  │ Editor  │         │ Editor  │
-│ A&R     │ A&R     │ A&R     │         │ A&R     │
-│ Mktg    │ Mktg    │ Mktg    │         │ Mktg    │
-└─────────┴─────────┴─────────┴─────────┴─────────┘
-   ↕ Git PR/Issue    ↕ Git PR/Issue
-┌─────────┐       ┌─────────┐
-│Artist A │       │Artist B │     ... (Human)
-│ (Human) │       │ (Human) │
-└─────────┘       └─────────┘
-   ↕ Open Commit Logs (Entertainment)
-┌──────────────────────────────────────┐
-│          Fans / Community            │
-│   Issue投票 / PRレビュー / 課金参加    │
-└──────────────────────────────────────┘
-```
-
 ## 🚀 Mission
-「大衆に迎合しない『狂気のAIエンジン（Mad Editor）』で、人間の限界を突破させる」
+「最高峰のAI知能（フロント）と限界費用ゼロの資本（バック）を融合し、表現者の生態系を再定義する」
+
+---
+
+## 🏢 Holdings Structure
+
+```
+┌───────────────────────────────────────────────────┐
+│        RYKNSH records (Holdings / Mothership)      │
+│  ビジョン統括 / 法務 / 経理 / 配信インフラ / データ基盤  │
+│          LangGraph Central Orchestrator            │
+├───────────┬───────────┬───────────┬───────────┬─────┤
+│ ① Velie   │② 制作会社  │③グロース社 │④ 広報PR社 │⑤レーベル│
+│  QA/検証   │ Creative  │Mktg+Sales │  PR/Comms │Music│
+│           │Production │  Growth   │           │Label│
+├───────────┼───────────┼───────────┼───────────┼─────┤
+│コード検証   │デザイン     │データ分析   │プレスリリース│Mad  │
+│デバッグ     │映像制作     │キャンペーン │メディア対応  │Editor│
+│テスト自動化 │コンテンツ   │リード獲得   │危機管理     │A&R  │
+│CI/CDゲート │アートワーク │CRM/営業    │ブランド保護  │Fan参加│
+├───────────┼───────────┼───────────┼───────────┼─────┤
+│外販: SaaS  │外販: 受託   │外販: SaaS  │外販: 受託   │外販: │
+│内販: 全社   │内販: 全社   │内販: 全社   │内販: 全社   │コンテ│
+│  QA基盤   │アセット供給 │グロース支援 │信頼管理     │ンツPF│
+└───────────┴───────────┴───────────┴───────────┴─────┘
+```
+
+## 📐 設計原則
+
+1. **内販×外販の二刀流** — 各社はグループ内サービス提供で安定収益 + 外部顧客への専門サービス販売
+2. **循環型エコシステム** — 制作→グロース→広報→レーベルと価値が循環し再現不可能な競争優位を構築
+3. **Velieファースト** — 全社の品質をVelieが担保。Velieを通過しないコードは一行もデプロイされない
 
 ## 🗺️ Roadmap
 
-| Phase | Period | Goal |
-|-------|--------|------|
-| Phase 1 | Month 1-6 | The First Maison & Platform Core |
-| Phase 2 | Month 7-12 | Y-Combinator Onboarding (L0 Audition) |
-| Phase 3 | Year 2-3 | LVMH Swarm (100+ IP Portfolio) |
-| Phase 4 | Year 4~ | Tokenomics & Governance |
+| Phase | Period | Company | Purpose |
+|-------|--------|---------|---------|
+| 0 | Now | **本社 (RYKNSH records)** | ビジョン・共通インフラ構築 |
+| 1 | M1-3 | **① Velie** | 全社の品質基盤 (QA/テストSaaS) |
+| 2 | M3-6 | **② 制作会社** | クリエイティブアセット供給 |
+| 3 | M6-9 | **③ グロース会社** | マーケ+営業統合エンジン |
+| 4 | M9-12 | **④ 広報PR会社** | ブランド管理・信頼構築 |
+| 5 | Y2~ | **⑤ 音楽レーベル** | 全社の能力を結集した最終兵器 |
 
-## 📂 Structure
+## 📂 Repository Structure
+
 ```
-RYKNSH-records/
+RYKNSH-records/          ← 本社リポ (Holdings)
 ├── README.md
-├── Velie/          # First Maison (IP)
-└── ...
+├── docs/                ← ビジョン・戦略ドキュメント
+├── Velie/               ← ① QA/検証エージェント事業
+└── ...                  ← 各子会社は独立リポとして展開予定
 ```
 
 ---
