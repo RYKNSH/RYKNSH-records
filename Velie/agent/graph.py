@@ -1,6 +1,7 @@
 """Velie QA Agent — LangGraph Code Review Graph.
 
 The core loop: fetch_diff → review_code → generate_suggestions → post_review
+              → [auto-fix if critical] → create_fix_pr
 """
 
 from __future__ import annotations
@@ -17,6 +18,13 @@ from langgraph.graph import END, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
 from agent.github_app import get_auth_token
+from agent.autofix import (
+    apply_suggestions_to_branch,
+    create_fix_branch,
+    get_pr_head_branch,
+    open_fix_pr,
+    should_auto_fix,
+)
 from agent.prompts import (
     REVIEW_USER_TEMPLATE,
     SUGGESTION_SYSTEM_PROMPT,
@@ -65,6 +73,7 @@ class QAState(TypedDict):
     # Output
     review_body: str
     suggestions: list[dict]
+    fix_pr_url: str
 
 
 # ---------------------------------------------------------------------------
@@ -329,11 +338,95 @@ def _detect_severity(review_body: str) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Phase 2: Auto-Fix PR
+# ---------------------------------------------------------------------------
+
+def should_fix(state: QAState) -> str:
+    """Router: decide whether to create a fix PR based on severity."""
+    severity = _detect_severity(state.get("review_body", ""))
+    suggestions = state.get("suggestions", [])
+
+    if not suggestions:
+        return "end"
+
+    # Threshold will be checked inside create_fix_pr via config
+    # Here we just check if there are suggestions to apply
+    if severity in ("critical", "warning"):
+        return "create_fix_pr"
+    return "end"
+
+
+async def create_fix_pr(state: QAState, config: RunnableConfig) -> dict:
+    """Create a fix branch, apply suggestions, and open a Fix PR."""
+    # Check tenant threshold
+    threshold = (config.get("configurable", {}) or {}).get("auto_fix_threshold", "off")
+    severity = _detect_severity(state.get("review_body", ""))
+
+    if not should_auto_fix(severity, threshold):
+        logger.info("Auto-fix skipped: severity=%s, threshold=%s", severity, threshold)
+        return {"fix_pr_url": ""}
+
+    suggestions = state.get("suggestions", [])
+    if not suggestions:
+        return {"fix_pr_url": ""}
+
+    repo = state["repo_full_name"]
+    pr_number = state["pr_number"]
+
+    token = await get_auth_token(state.get("installation_id"))
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/vnd.github.v3+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+    }
+    client = _get_http_client()
+
+    try:
+        # 1. Get PR head branch info
+        head_branch, head_sha = await get_pr_head_branch(
+            client, repo, pr_number, headers,
+        )
+
+        # 2. Create fix branch from PR head
+        fix_branch = await create_fix_branch(
+            client, repo, head_sha, pr_number, headers,
+        )
+
+        # 3. Apply suggestions
+        fixed_count = await apply_suggestions_to_branch(
+            client, repo, fix_branch, suggestions, headers,
+        )
+
+        if fixed_count == 0:
+            logger.warning("No fixes applied for PR #%d, skipping Fix PR", pr_number)
+            return {"fix_pr_url": ""}
+
+        # 4. Open Fix PR targeting the original PR's branch
+        fix_pr_url = await open_fix_pr(
+            client, repo, fix_branch, head_branch,
+            pr_number, suggestions, headers,
+        )
+
+        logger.info(
+            "Auto-fix complete: PR #%d → %s (%d files fixed)",
+            pr_number, fix_pr_url, fixed_count,
+        )
+        return {"fix_pr_url": fix_pr_url}
+
+    except Exception:
+        logger.exception("Failed to create auto-fix PR for PR #%d", pr_number)
+        return {"fix_pr_url": ""}
+
+
+# ---------------------------------------------------------------------------
 # Graph Definition
 # ---------------------------------------------------------------------------
 
 def build_qa_graph(checkpointer: AsyncPostgresSaver | None = None) -> CompiledStateGraph:
-    """Build the QA review graph: fetch_diff → review_code → generate_suggestions → post_review.
+    """Build the QA review graph with optional auto-fix.
+
+    Flow: fetch_diff → review_code → generate_suggestions → post_review
+          → should_fix → [create_fix_pr → END | END]
 
     Args:
         checkpointer: Optional AsyncPostgresSaver for stateful persistence.
@@ -345,12 +438,18 @@ def build_qa_graph(checkpointer: AsyncPostgresSaver | None = None) -> CompiledSt
     graph.add_node("review_code", review_code)
     graph.add_node("generate_suggestions", generate_suggestions)
     graph.add_node("post_review", post_review)
+    graph.add_node("create_fix_pr", create_fix_pr)
 
     graph.set_entry_point("fetch_diff")
     graph.add_edge("fetch_diff", "review_code")
     graph.add_edge("review_code", "generate_suggestions")
     graph.add_edge("generate_suggestions", "post_review")
-    graph.add_edge("post_review", END)
+    graph.add_conditional_edges(
+        "post_review",
+        should_fix,
+        {"create_fix_pr": "create_fix_pr", "end": END},
+    )
+    graph.add_edge("create_fix_pr", END)
 
     return graph.compile(checkpointer=checkpointer)
 

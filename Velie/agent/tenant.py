@@ -33,6 +33,7 @@ class TenantConfig:
     max_diff_chars: int = 60_000
     review_language: str = "en"
     auto_suggest: bool = True
+    auto_fix_threshold: str = "off"  # "critical", "warning", or "off"
 
     @classmethod
     def from_db_row(cls, row: dict) -> TenantConfig:
@@ -46,6 +47,7 @@ class TenantConfig:
             max_diff_chars=config.get("max_diff_chars", 60_000),
             review_language=config.get("review_language", "en"),
             auto_suggest=config.get("auto_suggest", True),
+            auto_fix_threshold=config.get("auto_fix_threshold", "off"),
         )
 
     @classmethod
