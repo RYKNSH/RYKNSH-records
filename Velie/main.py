@@ -1,6 +1,7 @@
 """Velie QA Agent — Entry Point."""
 
 import logging
+import os
 
 import uvicorn
 
@@ -10,6 +11,8 @@ from server.config import get_settings
 def main():
     """Run the Velie QA Agent server."""
     cfg = get_settings()
+    is_dev = os.getenv("VELIE_ENV", "production") == "development"
+
     logging.basicConfig(
         level=getattr(logging, cfg.log_level.upper(), logging.INFO),
         format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
@@ -20,7 +23,7 @@ def main():
         "server.app:app",
         host="0.0.0.0",
         port=cfg.port,
-        reload=True,
+        reload=is_dev,
         log_level=cfg.log_level,
     )
 
