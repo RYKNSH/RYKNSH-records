@@ -5,17 +5,73 @@ import { getDashboardStats, getReviews, timeAgo } from "@/lib/data";
 
 export const revalidate = 30; // ISR
 
+interface TrustData {
+  trust_score: number;
+  acceptance_rate: number;
+  total_suggestions: number;
+  trend: string;
+}
+
+interface HealthData {
+  status: string;
+  total_errors: number;
+  recent_errors: number;
+}
+
+async function getTrustScore(): Promise<TrustData> {
+  try {
+    const baseUrl = process.env.VELIE_API_URL || "http://localhost:8000";
+    const res = await fetch(`${baseUrl}/api/trust`, { next: { revalidate: 60 } });
+    if (!res.ok) return { trust_score: 0, acceptance_rate: 0, total_suggestions: 0, trend: "insufficient_data" };
+    return await res.json();
+  } catch {
+    return { trust_score: 0, acceptance_rate: 0, total_suggestions: 0, trend: "insufficient_data" };
+  }
+}
+
+async function getHealthStatus(): Promise<HealthData> {
+  try {
+    const baseUrl = process.env.VELIE_API_URL || "http://localhost:8000";
+    const res = await fetch(`${baseUrl}/api/health/detailed`, { next: { revalidate: 30 } });
+    if (!res.ok) return { status: "unknown", total_errors: 0, recent_errors: 0 };
+    return await res.json();
+  } catch {
+    return { status: "unknown", total_errors: 0, recent_errors: 0 };
+  }
+}
+
+const healthStatusConfig: Record<string, { color: string; label: string }> = {
+  healthy: { color: "bg-emerald-500", label: "Operational" },
+  warning: { color: "bg-amber-500", label: "Warning" },
+  degraded: { color: "bg-red-500", label: "Degraded" },
+  unknown: { color: "bg-gray-500", label: "Unknown" },
+};
+
 export default async function DashboardPage() {
-  const [stats, reviews] = await Promise.all([
+  const [stats, reviews, trust, health] = await Promise.all([
     getDashboardStats(),
     getReviews(5),
+    getTrustScore(),
+    getHealthStatus(),
   ]);
+
+  const trustPercent = Math.round(trust.trust_score * 100);
+  const acceptancePercent = Math.round(trust.acceptance_rate * 100);
+  const trendEmoji = trust.trend === "improving" ? "📈" : trust.trend === "declining" ? "📉" : "➡️";
 
   const statCards = [
     { title: "Total Reviews", value: stats.totalReviews, icon: "🔍", color: "purple" as const, trend: stats.totalReviews > 0 ? { value: 100, label: "this week" } : undefined },
     { title: "Critical Issues", value: stats.criticalIssues, icon: "🔴", color: "green" as const, subtitle: stats.totalReviews > 0 ? `${Math.round((stats.criticalIssues / stats.totalReviews) * 100)}% detection rate` : "No reviews yet" },
-    { title: "Repos Monitored", value: stats.repos, icon: "📦", color: "blue" as const },
+    { title: "Trust Score", value: trustPercent, icon: "🛡️", color: "blue" as const, subtitle: trust.total_suggestions > 0 ? `${acceptancePercent}% acceptance ${trendEmoji}` : "No data yet" },
     { title: "API Calls", value: stats.apiCalls, icon: "⚡", color: "amber" as const, subtitle: "Claude Sonnet" },
+  ];
+
+  const healthConfig = healthStatusConfig[health.status] || healthStatusConfig.unknown;
+
+  const systemItems = [
+    { label: "Webhook Server", status: healthConfig.label, color: healthConfig.color },
+    { label: "Claude API", status: health.total_errors > 0 ? `${health.recent_errors} recent errors` : "Connected", color: health.recent_errors > 3 ? "bg-amber-500" : "bg-emerald-500" },
+    { label: "GitHub App", status: "Active", color: "bg-emerald-500" },
   ];
 
   return (
@@ -91,11 +147,7 @@ export default async function DashboardPage() {
         <div className="glass p-6">
           <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">System Status</h3>
           <div className="grid grid-cols-3 gap-4">
-            {[
-              { label: "Webhook Server", status: "Operational", color: "bg-emerald-500" },
-              { label: "Claude API", status: "Connected", color: "bg-emerald-500" },
-              { label: "GitHub App", status: "Active", color: "bg-emerald-500" },
-            ].map((item) => (
+            {systemItems.map((item) => (
               <div key={item.label} className="flex items-center gap-3">
                 <div className={`status-dot ${item.color}`} />
                 <div>
