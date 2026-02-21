@@ -25,6 +25,8 @@ from agent.autofix import (
     open_fix_pr,
     should_auto_fix,
 )
+from agent.ci_monitor import post_ci_status_comment, wait_for_checks
+from agent.feedback import record_feedback
 from agent.prompts import (
     REVIEW_USER_TEMPLATE,
     SUGGESTION_SYSTEM_PROMPT,
@@ -411,10 +413,54 @@ async def create_fix_pr(state: QAState, config: RunnableConfig) -> dict:
             "Auto-fix complete: PR #%d → %s (%d files fixed)",
             pr_number, fix_pr_url, fixed_count,
         )
+
+        # 5. Record feedback
+        record_feedback(
+            pr_number=pr_number,
+            repo_full_name=repo,
+            feedback_type="fix_created",
+            details={"fix_pr_url": fix_pr_url, "files_fixed": fixed_count},
+        )
+
+        # 6. Monitor CI checks (best-effort, don't block on failure)
+        try:
+            # Get the latest commit on the fix branch
+            fix_branch_resp = await client.get(
+                f"https://api.github.com/repos/{repo}/git/refs/heads/{fix_branch}",
+                headers=headers,
+            )
+            fix_branch_resp.raise_for_status()
+            fix_commit_sha = fix_branch_resp.json()["object"]["sha"]
+
+            ci_result = await wait_for_checks(
+                client, repo, fix_commit_sha, headers,
+                timeout_seconds=180,  # 3 min max
+            )
+
+            # Post CI result as comment on the original PR
+            await post_ci_status_comment(
+                client, repo, pr_number, ci_result, headers,
+            )
+
+            # Record CI feedback
+            record_feedback(
+                pr_number=pr_number,
+                repo_full_name=repo,
+                feedback_type="ci_passed" if ci_result["all_passed"] else "ci_failed",
+                details=ci_result,
+            )
+        except Exception:
+            logger.exception("CI monitoring failed for PR #%d (non-fatal)", pr_number)
+
         return {"fix_pr_url": fix_pr_url}
 
     except Exception:
         logger.exception("Failed to create auto-fix PR for PR #%d", pr_number)
+        record_feedback(
+            pr_number=pr_number,
+            repo_full_name=repo,
+            feedback_type="fix_failed",
+        )
         return {"fix_pr_url": ""}
 
 
