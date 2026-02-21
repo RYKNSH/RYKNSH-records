@@ -18,6 +18,7 @@ from langgraph.graph.state import CompiledStateGraph
 
 from agent.github_app import get_auth_token
 from agent.prompts import REVIEW_USER_TEMPLATE, SYSTEM_PROMPT
+from agent.sanitizer import sanitize_diff
 from server.config import get_settings
 
 if TYPE_CHECKING:
@@ -92,7 +93,7 @@ async def fetch_diff(state: QAState) -> dict:
         )
 
     logger.info("Fetched diff for PR #%d (%d chars)", pr_number, len(diff_text))
-    return {"diff": diff_text}
+    return {"diff": sanitize_diff(diff_text)}
 
 
 async def review_code(state: QAState, config: RunnableConfig) -> dict:
@@ -132,7 +133,7 @@ async def review_code(state: QAState, config: RunnableConfig) -> dict:
 
 
 async def post_review(state: QAState) -> dict:
-    """Post the review as a comment on the PR."""
+    """Post the review as a comment on the PR and save to Supabase."""
     repo = state["repo_full_name"]
     pr_number = state["pr_number"]
     url = f"https://api.github.com/repos/{repo}/issues/{pr_number}/comments"
@@ -151,7 +152,79 @@ async def post_review(state: QAState) -> dict:
     resp.raise_for_status()
 
     logger.info("Posted review comment on PR #%d in %s", pr_number, repo)
+
+    # --- Save review to Supabase ---
+    await _save_review_to_supabase(state)
+
     return {}
+
+
+async def _save_review_to_supabase(state: QAState) -> None:
+    """Persist review result. Tries Supabase first, falls back to local JSON."""
+    import json
+    from pathlib import Path
+    from datetime import datetime, timezone
+
+    review_record = {
+        "id": f"{state['repo_full_name']}-{state['pr_number']}-{int(datetime.now(timezone.utc).timestamp())}",
+        "pr_number": state["pr_number"],
+        "repo_full_name": state["repo_full_name"],
+        "pr_title": state.get("pr_title", ""),
+        "pr_author": state.get("pr_author", "unknown"),
+        "severity": _detect_severity(state["review_body"]),
+        "review_body": state["review_body"][:10000],
+        "installation_id": state.get("installation_id"),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+    # Try Supabase first
+    cfg = get_settings()
+    if cfg.supabase_url and cfg.supabase_anon_key:
+        try:
+            client = _get_http_client()
+            resp = await client.post(
+                f"{cfg.supabase_url}/rest/v1/reviews",
+                headers={
+                    "apikey": cfg.supabase_anon_key,
+                    "Authorization": f"Bearer {cfg.supabase_anon_key}",
+                    "Content-Type": "application/json",
+                    "Prefer": "return=minimal",
+                },
+                json=review_record,
+            )
+            resp.raise_for_status()
+            logger.info("Saved review to Supabase (PR #%d)", state["pr_number"])
+            return
+        except Exception:
+            logger.warning("Supabase save failed — falling back to local JSON")
+
+    # Fallback: local JSON file
+    data_dir = Path(__file__).parent.parent / "data"
+    data_dir.mkdir(exist_ok=True)
+    reviews_file = data_dir / "reviews.json"
+
+    existing: list = []
+    if reviews_file.exists():
+        try:
+            existing = json.loads(reviews_file.read_text())
+        except Exception:
+            existing = []
+
+    existing.insert(0, review_record)  # newest first
+    existing = existing[:500]  # cap at 500
+
+    reviews_file.write_text(json.dumps(existing, indent=2, ensure_ascii=False))
+    logger.info("Saved review to local JSON (PR #%d, total=%d)", state["pr_number"], len(existing))
+
+
+def _detect_severity(review_body: str) -> str:
+    """Auto-detect severity from review body content."""
+    body_lower = review_body.lower()
+    if "🔴" in review_body or "critical" in body_lower:
+        return "critical"
+    if "🟡" in review_body or "warning" in body_lower:
+        return "warning"
+    return "clean"
 
 
 # ---------------------------------------------------------------------------

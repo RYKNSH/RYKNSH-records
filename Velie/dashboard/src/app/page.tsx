@@ -1,61 +1,66 @@
 import { Sidebar } from "@/components/sidebar";
 import { StatCard } from "@/components/stat-card";
 import { ReviewItem } from "@/components/review-item";
+import { getDashboardStats, getReviews, timeAgo } from "@/lib/data";
 
-// Mock data — will be replaced with Supabase queries
-const stats = [
-  { title: "Total Reviews", value: 2, icon: "🔍", color: "purple" as const, trend: { value: 100, label: "this week" } },
-  { title: "Critical Issues", value: 1, icon: "🔴", color: "green" as const, subtitle: "50% detection rate" },
-  { title: "Repos Monitored", value: 1, icon: "📦", color: "blue" as const },
-  { title: "API Calls", value: 4, icon: "⚡", color: "amber" as const, subtitle: "Claude Sonnet" },
-];
+export const revalidate = 30; // ISR
 
-const recentReviews = [
-  {
-    prNumber: 1,
-    repo: "RYKNSH/RYKNSH-records",
-    title: "test: Velie Real E2E - Security issue for review",
-    author: "RYKNSH",
-    severity: "critical" as const,
-    createdAt: "2 hours ago",
-  },
-];
+export default async function DashboardPage() {
+  const [stats, reviews] = await Promise.all([
+    getDashboardStats(),
+    getReviews(5),
+  ]);
 
-export default function DashboardPage() {
+  const statCards = [
+    { title: "Total Reviews", value: stats.totalReviews, icon: "🔍", color: "purple" as const, trend: stats.totalReviews > 0 ? { value: 100, label: "this week" } : undefined },
+    { title: "Critical Issues", value: stats.criticalIssues, icon: "🔴", color: "green" as const, subtitle: stats.totalReviews > 0 ? `${Math.round((stats.criticalIssues / stats.totalReviews) * 100)}% detection rate` : "No reviews yet" },
+    { title: "Repos Monitored", value: stats.repos, icon: "📦", color: "blue" as const },
+    { title: "API Calls", value: stats.apiCalls, icon: "⚡", color: "amber" as const, subtitle: "Claude Sonnet" },
+  ];
+
   return (
     <div className="flex min-h-screen">
       <Sidebar />
 
       <main className="flex-1 ml-64 p-8">
-        {/* Header */}
         <div className="mb-8">
           <h2 className="text-2xl font-bold text-white">Dashboard</h2>
           <p className="text-sm text-gray-500 mt-1">AI-powered code review insights</p>
         </div>
 
-        {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          {stats.map((stat) => (
+          {statCards.map((stat) => (
             <StatCard key={stat.title} {...stat} />
           ))}
         </div>
 
-        {/* Recent Reviews */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-white">Recent Reviews</h3>
-            <span className="text-xs text-purple-400 cursor-pointer hover:text-purple-300">
-              View all →
-            </span>
+            <a href="/reviews" className="text-xs text-purple-400 hover:text-purple-300">View all →</a>
           </div>
           <div className="space-y-3">
-            {recentReviews.map((review) => (
-              <ReviewItem key={`${review.repo}-${review.prNumber}`} {...review} />
-            ))}
+            {reviews.length > 0 ? (
+              reviews.map((review) => (
+                <ReviewItem
+                  key={review.id}
+                  prNumber={review.pr_number}
+                  repo={review.repo_full_name}
+                  title={review.pr_title || `PR #${review.pr_number}`}
+                  author={review.pr_author}
+                  severity={review.severity}
+                  createdAt={timeAgo(review.created_at)}
+                />
+              ))
+            ) : (
+              <div className="glass p-8 text-center">
+                <span className="text-3xl block mb-2">🔍</span>
+                <p className="text-gray-400 text-sm">No reviews yet — open a PR to trigger Velie</p>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* System Status */}
         <div className="glass p-6">
           <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">System Status</h3>
           <div className="grid grid-cols-3 gap-4">

@@ -1,4 +1,7 @@
 import { Sidebar } from "@/components/sidebar";
+import { getDashboardStats } from "@/lib/data";
+
+export const revalidate = 30;
 
 const plans = [
     {
@@ -25,7 +28,12 @@ const plans = [
     },
 ];
 
-export default function BillingPage() {
+const FREE_LIMIT = 5;
+
+export default async function BillingPage() {
+    const stats = await getDashboardStats();
+    const usagePercent = Math.min((stats.totalReviews / FREE_LIMIT) * 100, 100);
+
     return (
         <div className="flex min-h-screen">
             <Sidebar />
@@ -36,17 +44,23 @@ export default function BillingPage() {
                     <p className="text-sm text-gray-500 mt-1">Manage your subscription and usage</p>
                 </div>
 
-                {/* Current Usage */}
+                {/* Current Usage — REAL DATA */}
                 <div className="glass p-6 mb-8">
                     <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">Current Usage</h3>
                     <div className="flex items-end gap-2 mb-3">
-                        <span className="text-3xl font-bold text-white">2</span>
-                        <span className="text-gray-500 text-sm mb-1">/ 5 reviews</span>
+                        <span className="text-3xl font-bold text-white">{stats.totalReviews}</span>
+                        <span className="text-gray-500 text-sm mb-1">/ {FREE_LIMIT} reviews</span>
                     </div>
                     <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
-                        <div className="h-full bg-gradient-to-r from-purple-500 to-purple-400 rounded-full transition-all" style={{ width: "40%" }} />
+                        <div
+                            className={`h-full rounded-full transition-all ${usagePercent >= 80 ? "bg-gradient-to-r from-red-500 to-red-400" : "bg-gradient-to-r from-purple-500 to-purple-400"
+                                }`}
+                            style={{ width: `${usagePercent}%` }}
+                        />
                     </div>
-                    <p className="text-xs text-gray-600 mt-2">Resets Feb 28, 2026</p>
+                    <p className="text-xs text-gray-600 mt-2">
+                        {usagePercent >= 100 ? "⚠️ Limit reached — upgrade to Pro" : `${FREE_LIMIT - stats.totalReviews} reviews remaining`}
+                    </p>
                 </div>
 
                 {/* Pricing Cards */}
