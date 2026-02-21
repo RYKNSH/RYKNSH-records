@@ -1175,6 +1175,60 @@ RYKNSHレーベルが過酷な環境で新機能をR&Dし、それがシーム�
 7. **Step 4 (UI)**: Next.js ダッシュボードとStripe決済の統合。
 
 ---
+---
+---
+
+# 🧭 Meta-Development & Navigation: 巨大プロジェクトで迷子にならないためのメタ・ループ
+
+**🤖 Moderator**:
+「長期間かつ大規模なシステム開発において、AIエージェントと人間（ユーザー）がコンテキストや方向性を完全に見失わないための仕組み（Meta-Loop）」を設計する。同時に、全体像を一目で把握できるよう、これまで「①品質保証AI」などと呼んでいた7つの子会社の**正式名称**を策定する。
+
+---
+
+### 🔄 Round 15: Context Persistence & The Company Names
+
+**🏛️ Architect**:
+まず、数ヶ月に及ぶ開発でAIエージェントが「自分が全体のどこを作っているのか」を見失わないための **The Meta-Loop (上位維持ループ)** を定義しよう。
+これは3つの絶対ルールで構成される。
+
+1. **State of the Union (毎セッション開始時の儀式)**
+   AIはセッション開始（`/checkin` 等）時に、必ず以下の4つのコンパス・ドキュメントを読み込むことを強制される。
+   - `strategy_bible.md` (Why & What: ビジョンと全体戦略)
+   - `architecture_blueprint.md` (How: システム設計と接続図)
+   - `master_execution_plan.md` (When: 垂直スライスの実行手順)
+   - **`company_directory.md`** (Where: 全子会社の名前、現在の進捗、リポジトリ位置をまとめた全体地図)
+2. **Git Driven Context Persistence (記憶の永続化)**
+   メイン開発ブランチとは別に `ctx/log` のようなOrphanブランチ等を用い、各セッションの最後に「AIが何を決定し、どこまで進んだか（Session Snapshot）」をコミットして永続記憶とする。
+3. **Always Update the Map (地図の更新)**
+   機能が実装されるたびに、AIは自律的に `company_directory.md` の進捗チェックボックスを更新する。
+
+**🍏 Steve**:
+完璧なループだ。「コード」と「コンテキスト」の完全分離・永続化だね。
+では、そのコンパスとなる「全体地図（`company_directory.md`）」に載せるための、**7つの子会社の正式名称**を決めよう。
+ユーザーが愛着を持てる、洗練された単語が良い。
+
+**🎨 Visionary**:
+RYKNSH records の美学（LVMH的、洗練、AIと人間の融和）に合わせたネーミングを提案する。
+
+| No | 事業領域 | 正式名称 (Code Name) | 意味・由来 | 外販プロダクト名 |
+|----|----------|----------------------|------------|----------------|
+| **0** | **本社 (Orchestrator)** | **RYKNSH records** | Mothership。全てを統括する。 | (なし) |
+| **1** | **QA / 検証 AI** | **Velie (ヴェリー)** | 真実（Verify/Verite）を司る。品質の門番。 | Velie CI |
+| **2** | **AI 制作プロダクション** | **Lumina (ルミナ)** | 光を当てる。暗闇からアセットを具現化する。 | AI Creative Studio |
+| **3** | **グロース・営業 AI** | **Catalyst (カタリスト)** | 触媒。市場と作品を爆発的に繋ぐ。 | Growth Agent |
+| **4** | **広報PR・防衛 AI** | **Aegis (イージス)** | 神の盾。炎上や危機からブランドを守護する。 | Crisis Shield |
+| **5** | **AI R&D ラボ** | **Core (コア)** | 全エージェントの脳（LLM/RAG基盤）。 | Agent Framework |
+| **6** | **ファン・コミュニティ基盤** | **Stream (ストリーム)** | 絶え間ない制作プロセス（Studio Stream）を流す川。 | Fan Platform |
+| **7** | **音楽レーベル・IP** | **Maison 01 (メゾン・ゼロワン)** | 第1の家。フラッグシップIP部隊。 | 音楽・コンテンツ |
+
+**🚀 Elon**:
+美しい。①〜⑤はSaaSとしてのソリッドな響きがあり、⑥⑦はファン向けエンタメの温かみがある。
+「次はVelieのSprint 2をやる」「LuminaのGraph基盤を作る」と呼べるようになり、ユーザー（CEO）とAIの間の言語解像度が劇的に上がる。
+
+**💰 CFO**:
+では、この「7社の名称」「役割」「現在の開発フェーズ」「リポジトリ内でのパス」を一覧化した **`company_directory.md` (Project Navigator)** を作成し、これをMeta-Loopの「常に参照すべき地図」として機能させよう。
+
+---
 **Debate Quality Score**: MAX
 **Consensus Reached**: Yes
 *(End of Process)*
