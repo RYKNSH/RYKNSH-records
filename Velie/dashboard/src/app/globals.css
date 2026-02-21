@@ -1,0 +1,59 @@
+@import "tailwindcss";
+
+:root {
+  --color-brand: #8b5cf6;
+  --color-brand-light: #a78bfa;
+  --color-brand-dark: #7c3aed;
+  --color-success: #10b981;
+  --color-danger: #ef4444;
+  --color-warning: #f59e0b;
+}
+
+body {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+}
+
+/* Glass card */
+.glass {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+}
+
+.glass-hover:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(139, 92, 246, 0.3);
+  transform: translateY(-2px);
+  transition: all 0.3s ease;
+}
+
+/* Glow effect */
+.glow {
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.15);
+}
+
+.glow-text {
+  text-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
+}
+
+/* Status indicators */
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Smooth transitions */
+* {
+  transition-property: color, background-color, border-color, opacity, transform;
+  transition-duration: 200ms;
+  transition-timing-function: ease;
+}
