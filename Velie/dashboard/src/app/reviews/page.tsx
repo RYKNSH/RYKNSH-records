@@ -26,6 +26,7 @@ export default async function ReviewsPage() {
                         reviews.map((review) => (
                             <ReviewItem
                                 key={review.id}
+                                id={review.id}
                                 prNumber={review.pr_number}
                                 repo={review.repo_full_name}
                                 title={review.pr_title || `PR #${review.pr_number}`}

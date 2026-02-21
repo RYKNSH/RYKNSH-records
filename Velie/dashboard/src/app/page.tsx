@@ -44,6 +44,7 @@ export default async function DashboardPage() {
               reviews.map((review) => (
                 <ReviewItem
                   key={review.id}
+                  id={review.id}
                   prNumber={review.pr_number}
                   repo={review.repo_full_name}
                   title={review.pr_title || `PR #${review.pr_number}`}
@@ -53,9 +54,35 @@ export default async function DashboardPage() {
                 />
               ))
             ) : (
-              <div className="glass p-8 text-center">
-                <span className="text-3xl block mb-2">🔍</span>
-                <p className="text-gray-400 text-sm">No reviews yet — open a PR to trigger Velie</p>
+              <div className="glass p-10 text-center">
+                <div className="text-5xl mb-4">🚀</div>
+                <h3 className="text-lg font-semibold text-white mb-2">Welcome to Velie!</h3>
+                <p className="text-gray-400 text-sm mb-6 max-w-md mx-auto">
+                  AI-powered code reviews for your PRs. Get started in 3 steps:
+                </p>
+                <div className="flex flex-col gap-4 max-w-sm mx-auto text-left">
+                  <div className="flex items-start gap-3">
+                    <span className="text-purple-400 font-bold text-sm mt-0.5">1</span>
+                    <div>
+                      <p className="text-sm text-white font-medium">Install the GitHub App</p>
+                      <p className="text-xs text-gray-500">Connect your repositories to Velie</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="text-purple-400 font-bold text-sm mt-0.5">2</span>
+                    <div>
+                      <p className="text-sm text-white font-medium">Open a Pull Request</p>
+                      <p className="text-xs text-gray-500">Velie will automatically review the code</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="text-purple-400 font-bold text-sm mt-0.5">3</span>
+                    <div>
+                      <p className="text-sm text-white font-medium">Review the results here</p>
+                      <p className="text-xs text-gray-500">Track issues, severity, and trends</p>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
           </div>

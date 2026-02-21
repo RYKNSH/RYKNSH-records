@@ -1,4 +1,7 @@
+import Link from "next/link";
+
 interface ReviewItemProps {
+    id?: string;
     prNumber: number;
     repo: string;
     title: string;
@@ -13,10 +16,10 @@ const severityConfig = {
     clean: { dot: "bg-emerald-500", label: "Clean", bg: "bg-emerald-500/10 text-emerald-400" },
 };
 
-export function ReviewItem({ prNumber, repo, title, author, severity, createdAt }: ReviewItemProps) {
+export function ReviewItem({ id, prNumber, repo, title, author, severity, createdAt }: ReviewItemProps) {
     const config = severityConfig[severity];
-    return (
-        <div className="glass glass-hover p-4 flex items-center gap-4">
+    const content = (
+        <div className="glass glass-hover p-4 flex items-center gap-4 cursor-pointer">
             <div className={`status-dot ${config.dot} flex-shrink-0`} />
             <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
@@ -34,6 +37,12 @@ export function ReviewItem({ prNumber, repo, title, author, severity, createdAt 
             <span className={`text-[10px] font-medium px-2 py-1 rounded-full ${config.bg}`}>
                 {config.label}
             </span>
+            <span className="text-gray-600 text-xs">→</span>
         </div>
     );
+
+    if (id) {
+        return <Link href={`/reviews/${encodeURIComponent(id)}`}>{content}</Link>;
+    }
+    return content;
 }
