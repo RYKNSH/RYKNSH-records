@@ -61,10 +61,10 @@ RYKNSH recordsが生み出す全ての事業、プロダクト、そしてクリ
 RYKNSH records (Holdings / Mothership)
 ├── ① 品質保証AI      — QA/検証（全社のコード品質基盤） [Velie]
 ├── ② 制作会社        — クリエイティブプロダクション [Lumina]
-├── ③ グロース会社     — マーケティング+営業の統合エンジン [Syndicate]
-├── ④ 広報PR会社      — ブランド保護・信頼管理（独立ガバナンス） [Vanguard]
-├── ⑤ テックラボ      — AI R&D（全社の脳・LLMハブ） [Braincell]
-├── ⑥ コミュニティ     — ファンの熱狂と課金基盤 [Sonar]
+├── ③ グロース会社     — マーケティング+営業の統合エンジン [Cyrus]
+├── ④ 広報PR会社      — ブランド保護・信頼管理（独立ガバナンス） [Iris]
+├── ⑤ テックラボ      — AI R&D（全社の脳・LLMハブ） [Ada]
+├── ⑥ コミュニティ     — ファンの熱狂と課金基盤 [Noah]
 └── ⑦ 音楽レーベル     — フラッグシップIPの育成と実証実験 [Label 01]
 ```
 
@@ -81,10 +81,10 @@ RYKNSH records (Holdings / Mothership)
 |------|----------|---------|
 | ①Velie | QA SaaS ($99-499/月) | 全社CI/CDゲート |
 | ②Lumina | クリエイティブ受託 (¥5-100万) | アセット供給 |
-| ③Syndicate | Growth SaaS (¥5-50万/月) | 集客・営業 (CPA連動) |
-| ④Vanguard | PR リテイナー (¥10-100万/月) | 信頼管理 |
-| ⑤Braincell | AI Framework ($299-999/月) | 基盤提供 |
-| ⑥Sonar | コミュニティSaaS (¥10-50万/月) | 課金基盤 |
+| ③Cyrus | Growth SaaS (¥5-50万/月) | 集客・営業 (CPA連動) |
+| ④Iris | PR リテイナー (¥10-100万/月) | 信頼管理 |
+| ⑤Ada | AI Framework ($299-999/月) | 基盤提供 |
+| ⑥Noah | コミュニティSaaS (¥10-50万/月) | 課金基盤 |
 | ⑦Label 01 | 音楽コンテンツ (都度/サブスク) | ショーケース |
 
 ### 4.3 顧客獲得戦略 — 4 Tierモデル
@@ -113,7 +113,10 @@ RYKNSH records (Holdings / Mothership)
 
 ---
 
-## 5. 戦術（Tactics / DO）
+## 5. ロードマップ (Execution Timeline)
+
+「垂直スライス」アプローチにより、AIエージェントが完成するごとに即座に外販（SaaSマネタイズ）を開始する。
+目標は **「最初の12ヶ月（1年間）で、社内業務を代替しつつ、6つのSaaSすべてを外部へ販売開始しマネタイズを完了させる」** こと。2年目（M13以降）にこれら最強のインフラを使って本来のレーベル（IP）事業で爆発的な利益を狙う。
 
 > **「Spice up World — この地球（ほし）を、もっと面白く。するための持続可能な製品を世界中に広く普及させる」**
 
@@ -126,11 +129,11 @@ RYKNSH records (Holdings / Mothership)
 |-------|------|------|--------------|
 | 0 | 今 | 本社 | リポジトリ構築・ビジョン文書策定・LangGraph基盤設計 |
 | 1 | M1-3 | ① Velie | OSS公開・PLGで500 Stars目標・Product Huntローンチ |
-| 1.5 | M2-4 | ⑤ Braincell | Agent Framework OSS公開・LangChainへのコントリビューション |
+| 1.5 | M2-4 | ⑤ Ada | Agent Framework OSS公開・LangChainへのコントリビューション |
 | 2 | M3-6 | ② Lumina | AI Creative Studio MVP・MV Factory プロトタイプ |
-| 3 | M6-9 | ③ Syndicate | Growth Agent MVP・全社の集客エンジン稼働 |
-| 3.5 | M7-10 | ⑥ コミュニティPF | Fan Platform MVP・課金エンジン構築 |
-| 4 | M9-12 | ④ Vanguard | AI Press Agent MVP・Crisis Shield プロトタイプ |
+| 3 | M6-9 | ③ Cyrus | Growth Agent MVP・全社の集客エンジン稼働 |
+| 3.5 | M7-10 | ⑥ Noah | Fan Platform MVP・課金エンジン構築 |
+| 4 | M9-12 | ④ Iris | AI Press Agent MVP・Crisis Shield プロトタイプ |
 | 5 | Y2~ | ⑦ Label 01 | Maison 01 公開・Mad Editor V1稼働・ファン参加開始 |
 
 ### 5.2 Phase 1 詳細（品質保証AI立ち上げ）

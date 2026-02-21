@@ -52,8 +52,8 @@ graph TD
         subgraph Sub_Graphs["Subsidiary Graphs"]
             QA[① Velie Graph]
             Prod[② Lumina Graph]
-            Growth[③ Syndicate Graph]
-            PR[④ Vanguard Graph]
+            Growth[③ Cyrus Graph]
+            PR[④ Iris Graph]
         end
     end
 

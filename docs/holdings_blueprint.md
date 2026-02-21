@@ -1289,6 +1289,53 @@ RYKNSH records の美学（LVMH的、洗練、AIと人間の融和）に合わ�
 素晴らしい。ではこれを `company_directory.md` と `master_execution_plan.md` の運用ルール（The Meta-Loop）に追記し、システムの根幹ルールとして固定しよう。
 
 ---
+---
+---
+
+# ⏳ Naming Personification & Monetization Timeline: ネーミングの人名化と収益化ロードマップの再確認
+
+**🤖 Moderator**:
+CEOからの最終フィードバックを受領した。「Syndicate, Vanguard, Braincell, Stream」という機能的な名称は、VelieやLuminaのような「人名っぽさ・キャラクター感」がなく、一貫性に欠けるという指摘だ。これを修正（V3）し、同時に「すべてのSaaSが外販マネタイズに至るまでの具体的なタイムライン（期間）」を再提示する。
+
+---
+
+### 🔄 Round 17: The AI Companions and The 12-Month Path
+
+#### Part 1: Company Naming V3 (The AI Personification / 人名化)
+
+**🎨 Visionary**:
+確かに、RYKNSH records のAIエージェントたちは「ツール（Tool）」ではなく「同僚（Companion）」であるべきだ。すべてのエージェントに、その役割を体現した洗練された「名前」を与える。
+
+| No | V2名称 | V3名称 (Code Name) | 意味・由来 | 担当プロダクト |
+|----|--------|--------------------|------------|--------------|
+| **1** | Velie | **Velie** (ヴェリー) | 真実（Verite）。品質の門番。 | Velie CI |
+| **2** | Lumina | **Lumina** (ルミナ) | 光。暗闇からアセットを生む。 | Lumina Studio |
+| **3** | Syndicate | **Cyrus** (サイラス) | 太陽、遠くを見通す者。未来を照らし市場を開拓する。 | Cyrus Growth |
+| **4** | Vanguard | **Iris** (アイリス) | 虹、神々の使者。外界との架け橋となり、ブランドを守る。 | Iris PR |
+| **5** | Braincell | **Ada** (エイダ) | 世界初のプログラマ（Ada Lovelace）。全社の頭脳。 | Ada Core API |
+| **6** | Sonar | **Sonar** → **Noah** (ノア) | 箱舟。ファンの熱狂を乗せて進むコミュニティ基盤。 | Noah Platform |
+| **7** | Label 01| **Label 01** | (レーベルとしての屋号はそのまま維持) | 音楽作品群 |
+
+**🚀 Elon**:
+完璧だ。「Cyrusが広告を回して、Irisがプレス書く。AdaのAPIが落ちてるからVelieにチェックさせよう」。完全に人間のプロ集団の会話になる。
+
+#### Part 2: Monetization Timeline (全社外販までの道のり)
+
+**💰 CFO**:
+「いつまでに全て外販できるのか？」というタイムラインを明確にしよう。
+我々は「Vertical Slice（垂直スライス）」アプローチをとっているため、1つのエージェントが完成するたびに、即座に外販（SaaSマネタイズ）を開始できる。全社（1〜6）のSaaS化が完了するまでのロードマップは **「12ヶ月（1年）」** を現実的なターゲットとする。
+
+* **[Month 1-3] Velie (QA)**: 最も早く価値検証可能。RYKNSHの内製コード品質向上と並行して、GitHub CIアプリとしてOSS/SaaSリリース。
+* **[Month 2-4] Ada (AI R&D)**: Velieを支える言語モデルのルーティング基盤を、API/フレームワークとして外販。
+* **[Month 3-6] Lumina (Creative)**: 画像・動画生成エージェント。クリエイティブ受託としてマネタイズ開始。
+* **[Month 6-9] Cyrus (Growth)**: マーケティング自動化SaaS。他社の集客支援で売り上げを立てる。
+* **[Month 7-10] Noah (Community)**: ファン課金基盤BtoB PaaS。
+* **[Month 9-12] Iris (PR)**: 広報自動化・炎上監視SaaS。
+
+**「1年間（12ヶ月）で6つの自律型SaaSを連続ローンチし、それぞれの単体サブスクリプションでマネタイズを完了させる。」**
+そして2年目（Year 2）から、完成した最強インフラをフルに使って本来の「Label 01（音楽IP）」を超低コスト・高クオリティで展開し、爆発的な利益を生む。
+
+---
 **Debate Quality Score**: MAX
 **Consensus Reached**: Yes
 *(End of Process)*

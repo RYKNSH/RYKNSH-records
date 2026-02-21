@@ -43,10 +43,10 @@ RYKNSHホールディングスを構成する7つのAI子会社（LangGraphモ�
 | **0** | **RYKNSH records** | 本社・Orchestrator（全体指揮） | (なし) | `Planning` |
 | **1** | **Velie** (ヴェリー) | 品質保証 (QA)・コード検証 | Velie CI | `Sprint 1 準備中` |
 | **2** | **Lumina** (ルミナ) | AI 制作プロダクション (画像/動画) | Lumina Studio | `Not Started` |
-| **3** | **Syndicate** (シンジケート) | グロース・マーケティング・自動営業 | Syndicate Growth | `Not Started` |
-| **4** | **Vanguard** (ヴァンガード) | 広報・炎上リスク管理・ブランド防衛 | Vanguard PR | `Not Started` |
-| **5** | **Braincell** (ブレインセル) | AI R&D・全エージェントの中枢基盤 | Braincell API | `Not Started` |
-| **6** | **Sonar** (ソナー) | ファンの熱狂を観測・集約する基盤 | Sonar | `Not Started` |
+| **3** | **Cyrus** (サイラス) | グロース・マーケティング・自動営業 | Cyrus Growth | `Not Started` |
+| **4** | **Iris** (アイリス) | 広報・炎上リスク管理・ブランド防衛 | Iris PR | `Not Started` |
+| **5** | **Ada** (エイダ) | AI R&D・全エージェントの中枢基盤 | Ada Core API | `Not Started` |
+| **6** | **Noah** (ノア) | ファンの熱狂を観測・集約する基盤 | Noah Platform | `Not Started` |
 | **7** | **Label 01** (レーベル・ゼロワン) | 音楽レーベル・フラッグシップIP | (音楽コンテンツ) | `Not Started` |
 
 ### 📂 Repository & Module Routing
@@ -55,12 +55,12 @@ RYKNSHホールディングスを構成する7つのAI子会社（LangGraphモ�
 - **[0] RYKNSH records**: `/` (Mothership)
 - **[1] Velie**: `/Velie/` (TBD)
 - **[2] Lumina**: `/Lumina/` (TBD)
-- **[3] Syndicate**: `/Syndicate/` (TBD)
-- **[4] Vanguard**: `/Vanguard/` (TBD)
-- **[5] Braincell**: `/Braincell/` (TBD)
-- **[6] Sonar**: `/Sonar/` (TBD)
+- **[3] Cyrus**: `/Cyrus/` (TBD)
+- **[4] Iris**: `/Iris/` (TBD)
+- **[5] Ada**: `/Ada/` (TBD)
+- **[6] Noah**: `/Noah/` (TBD)
 - **[7] Label 01**: `/Label01/` (TBD)
 
 ---
 *Last Updated: 2026-02-21*
-*Version: 1.1 (Project Navigator V11)*
+*Version: 1.2 (Project Navigator V12)*
