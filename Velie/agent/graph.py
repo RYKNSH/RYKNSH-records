@@ -1,6 +1,6 @@
 """Velie QA Agent — LangGraph Code Review Graph.
 
-The core loop: fetch_diff → review_code → post_review
+The core loop: fetch_diff → review_code → generate_suggestions → post_review
 """
 
 from __future__ import annotations
@@ -17,8 +17,14 @@ from langgraph.graph import END, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
 from agent.github_app import get_auth_token
-from agent.prompts import REVIEW_USER_TEMPLATE, SYSTEM_PROMPT
+from agent.prompts import (
+    REVIEW_USER_TEMPLATE,
+    SUGGESTION_SYSTEM_PROMPT,
+    SUGGESTION_USER_TEMPLATE,
+    SYSTEM_PROMPT,
+)
 from agent.sanitizer import sanitize_diff
+from agent.suggestions import build_review_comments, parse_suggestions
 from server.config import get_settings
 
 if TYPE_CHECKING:
@@ -58,6 +64,7 @@ class QAState(TypedDict):
 
     # Output
     review_body: str
+    suggestions: list[dict]
 
 
 # ---------------------------------------------------------------------------
@@ -132,11 +139,56 @@ async def review_code(state: QAState, config: RunnableConfig) -> dict:
     return {"review_body": review_body}
 
 
+async def generate_suggestions(state: QAState, config: RunnableConfig) -> dict:
+    """Generate concrete code fix suggestions based on the review."""
+    # Check if auto_suggest is enabled for this tenant
+    auto_suggest = (config.get("configurable", {}) or {}).get("auto_suggest", True)
+    if not auto_suggest:
+        logger.info("Suggestions disabled for this tenant, skipping")
+        return {"suggestions": []}
+
+    if not state.get("review_body"):
+        return {"suggestions": []}
+
+    cfg = get_settings()
+    tenant_model = (config.get("configurable", {}) or {}).get("llm_model")
+    model_name = tenant_model or "claude-sonnet-4-20250514"
+
+    llm = ChatAnthropic(
+        model=model_name,
+        api_key=cfg.anthropic_api_key,
+        max_tokens=4096,
+        temperature=0.0,  # Deterministic for code suggestions
+    )
+
+    user_prompt = SUGGESTION_USER_TEMPLATE.format(
+        review_body=state["review_body"],
+        diff=state["diff"],
+    )
+
+    messages = [
+        SystemMessage(content=SUGGESTION_SYSTEM_PROMPT),
+        HumanMessage(content=user_prompt),
+    ]
+
+    try:
+        response = await llm.ainvoke(messages)
+        suggestions = parse_suggestions(response.content)
+        suggestion_dicts = [s.__dict__ for s in suggestions]
+        logger.info(
+            "Generated %d suggestions for PR #%d",
+            len(suggestion_dicts), state["pr_number"],
+        )
+        return {"suggestions": suggestion_dicts}
+    except Exception:
+        logger.exception("Failed to generate suggestions, continuing without")
+        return {"suggestions": []}
+
+
 async def post_review(state: QAState) -> dict:
-    """Post the review as a comment on the PR and save to Supabase."""
+    """Post the review with inline suggestions on the PR."""
     repo = state["repo_full_name"]
     pr_number = state["pr_number"]
-    url = f"https://api.github.com/repos/{repo}/issues/{pr_number}/comments"
 
     token = await get_auth_token(state.get("installation_id"))
     headers = {
@@ -144,19 +196,68 @@ async def post_review(state: QAState) -> dict:
         "Accept": "application/vnd.github.v3+json",
         "X-GitHub-Api-Version": "2022-11-28",
     }
-
-    comment_body = f"## 🔍 Velie Code Review\n\n{state['review_body']}"
-
     client = _get_http_client()
-    resp = await client.post(url, headers=headers, json={"body": comment_body})
-    resp.raise_for_status()
 
-    logger.info("Posted review comment on PR #%d in %s", pr_number, repo)
+    # Build inline suggestion comments
+    suggestions = state.get("suggestions", [])
+    review_comments: list[dict] = []
+    if suggestions:
+        parsed = [__import__('agent.suggestions', fromlist=['Suggestion']).Suggestion(**s) for s in suggestions]
+        review_comments = build_review_comments(parsed, state["diff"])
 
-    # --- Save review to Supabase ---
+    if review_comments:
+        # Use PR Review API with inline suggestions
+        review_url = f"https://api.github.com/repos/{repo}/pulls/{pr_number}/reviews"
+
+        # Get latest commit SHA for the review
+        pr_url = f"https://api.github.com/repos/{repo}/pulls/{pr_number}"
+        pr_resp = await client.get(pr_url, headers=headers)
+        pr_resp.raise_for_status()
+        commit_sha = pr_resp.json()["head"]["sha"]
+
+        review_body = f"## 🔍 Velie Code Review\n\n{state['review_body']}\n\n---\n✨ **{len(review_comments)} auto-fix suggestion(s)** posted inline. Click \"Apply suggestion\" to fix."
+
+        review_payload = {
+            "commit_id": commit_sha,
+            "body": review_body,
+            "event": "COMMENT",
+            "comments": review_comments,
+        }
+
+        try:
+            resp = await client.post(review_url, headers=headers, json=review_payload)
+            resp.raise_for_status()
+            logger.info(
+                "Posted review with %d suggestions on PR #%d in %s",
+                len(review_comments), pr_number, repo,
+            )
+        except Exception:
+            logger.exception("Failed to post review with suggestions, falling back to comment")
+            # Fallback to simple comment
+            await _post_simple_comment(client, repo, pr_number, state["review_body"], headers)
+    else:
+        # No suggestions — post as regular comment
+        await _post_simple_comment(client, repo, pr_number, state["review_body"], headers)
+
+    # --- Save review ---
     await _save_review_to_supabase(state)
 
     return {}
+
+
+async def _post_simple_comment(
+    client: httpx.AsyncClient,
+    repo: str,
+    pr_number: int,
+    review_body: str,
+    headers: dict,
+) -> None:
+    """Fallback: post review as a simple issue comment."""
+    url = f"https://api.github.com/repos/{repo}/issues/{pr_number}/comments"
+    comment_body = f"## 🔍 Velie Code Review\n\n{review_body}"
+    resp = await client.post(url, headers=headers, json={"body": comment_body})
+    resp.raise_for_status()
+    logger.info("Posted review comment on PR #%d in %s", pr_number, repo)
 
 
 async def _save_review_to_supabase(state: QAState) -> None:
@@ -232,7 +333,7 @@ def _detect_severity(review_body: str) -> str:
 # ---------------------------------------------------------------------------
 
 def build_qa_graph(checkpointer: AsyncPostgresSaver | None = None) -> CompiledStateGraph:
-    """Build the QA review graph: fetch_diff → review_code → post_review.
+    """Build the QA review graph: fetch_diff → review_code → generate_suggestions → post_review.
 
     Args:
         checkpointer: Optional AsyncPostgresSaver for stateful persistence.
@@ -242,11 +343,13 @@ def build_qa_graph(checkpointer: AsyncPostgresSaver | None = None) -> CompiledSt
 
     graph.add_node("fetch_diff", fetch_diff)
     graph.add_node("review_code", review_code)
+    graph.add_node("generate_suggestions", generate_suggestions)
     graph.add_node("post_review", post_review)
 
     graph.set_entry_point("fetch_diff")
     graph.add_edge("fetch_diff", "review_code")
-    graph.add_edge("review_code", "post_review")
+    graph.add_edge("review_code", "generate_suggestions")
+    graph.add_edge("generate_suggestions", "post_review")
     graph.add_edge("post_review", END)
 
     return graph.compile(checkpointer=checkpointer)

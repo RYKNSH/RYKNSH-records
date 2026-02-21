@@ -32,6 +32,7 @@ class TenantConfig:
     llm_model: str = "claude-sonnet-4-20250514"
     max_diff_chars: int = 60_000
     review_language: str = "en"
+    auto_suggest: bool = True
 
     @classmethod
     def from_db_row(cls, row: dict) -> TenantConfig:
@@ -44,6 +45,7 @@ class TenantConfig:
             llm_model=config.get("llm_model", "claude-sonnet-4-20250514"),
             max_diff_chars=config.get("max_diff_chars", 60_000),
             review_language=config.get("review_language", "en"),
+            auto_suggest=config.get("auto_suggest", True),
         )
 
     @classmethod
