@@ -1,7 +1,7 @@
 [project]
 name = "velie"
 version = "0.1.0"
-description = "Add your description here"
+description = "AI-powered code review agent for RYKNSH records — LangGraph + FastAPI"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

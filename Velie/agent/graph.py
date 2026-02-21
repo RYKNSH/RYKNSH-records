@@ -6,17 +6,29 @@ The core loop: fetch_diff → review_code → post_review
 from __future__ import annotations
 
 import logging
-from typing import TypedDict
+from typing import TYPE_CHECKING, TypedDict
 
 import httpx
 from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.graph import END, StateGraph
+from langgraph.graph.state import CompiledStateGraph
 
 from agent.prompts import REVIEW_USER_TEMPLATE, SYSTEM_PROMPT
 from server.config import get_settings
 
 logger = logging.getLogger(__name__)
+
+# Shared HTTP client — reused across node invocations for connection pooling
+_http_client: httpx.AsyncClient | None = None
+
+
+def _get_http_client() -> httpx.AsyncClient:
+    """Get or create a shared httpx.AsyncClient for GitHub API calls."""
+    global _http_client
+    if _http_client is None or _http_client.is_closed:
+        _http_client = httpx.AsyncClient(timeout=30.0)
+    return _http_client
 
 
 # ---------------------------------------------------------------------------
@@ -58,18 +70,19 @@ async def fetch_diff(state: QAState) -> dict:
         "X-GitHub-Api-Version": "2022-11-28",
     }
 
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        resp = await client.get(url, headers=headers)
-        resp.raise_for_status()
-        diff_text = resp.text
+    client = _get_http_client()
+    resp = await client.get(url, headers=headers)
+    resp.raise_for_status()
+    diff_text = resp.text
+    original_len = len(diff_text)
 
     # Truncate very large diffs to avoid token limits
     max_chars = 60_000
-    if len(diff_text) > max_chars:
+    if original_len > max_chars:
         diff_text = diff_text[:max_chars] + "\n\n... [diff truncated due to size]"
         logger.warning(
             "Diff truncated for PR #%d in %s (original: %d chars)",
-            pr_number, repo, len(resp.text),
+            pr_number, repo, original_len,
         )
 
     logger.info("Fetched diff for PR #%d (%d chars)", pr_number, len(diff_text))
@@ -122,9 +135,9 @@ async def post_review(state: QAState) -> dict:
 
     comment_body = f"## 🔍 Velie Code Review\n\n{state['review_body']}"
 
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        resp = await client.post(url, headers=headers, json={"body": comment_body})
-        resp.raise_for_status()
+    client = _get_http_client()
+    resp = await client.post(url, headers=headers, json={"body": comment_body})
+    resp.raise_for_status()
 
     logger.info("Posted review comment on PR #%d in %s", pr_number, repo)
     return {}
@@ -134,7 +147,7 @@ async def post_review(state: QAState) -> dict:
 # Graph Definition
 # ---------------------------------------------------------------------------
 
-def build_qa_graph() -> StateGraph:
+def build_qa_graph() -> CompiledStateGraph:
     """Build the QA review graph: fetch_diff → review_code → post_review."""
     graph = StateGraph(QAState)
 

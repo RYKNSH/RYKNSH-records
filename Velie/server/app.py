@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import json
 import logging
 
 from fastapi import BackgroundTasks, FastAPI, Header, HTTPException, Request
+import httpx
 
 from agent.graph import qa_agent, QAState
 from server.config import get_settings
@@ -40,15 +42,18 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
 
 async def run_review(state: QAState) -> None:
     """Execute the LangGraph QA review pipeline in background."""
+    pr_id = f"PR #{state['pr_number']} in {state['repo_full_name']}"
     try:
-        logger.info(
-            "Starting review for PR #%d in %s",
-            state["pr_number"], state["repo_full_name"],
-        )
+        logger.info("Starting review for %s", pr_id)
         await qa_agent.ainvoke(state)
-        logger.info("Review completed for PR #%d", state["pr_number"])
+        logger.info("Review completed for %s", pr_id)
+    except httpx.HTTPStatusError as exc:
+        logger.error(
+            "GitHub API error for %s: %s %s",
+            pr_id, exc.response.status_code, exc.response.text[:200],
+        )
     except Exception:
-        logger.exception("Review failed for PR #%d in %s", state["pr_number"], state["repo_full_name"])
+        logger.exception("Unexpected error reviewing %s", pr_id)
 
 
 # ---------------------------------------------------------------------------
@@ -70,7 +75,7 @@ async def github_webhook(
 ):
     """Receive GitHub webhook events and trigger QA review."""
 
-    # 1. Read raw body
+    # 1. Read raw body (single read, parse once)
     body = await request.body()
 
     # 2. Verify signature
@@ -80,8 +85,8 @@ async def github_webhook(
     if not verify_signature(body, x_hub_signature_256, get_settings().github_webhook_secret):
         raise HTTPException(status_code=401, detail="Invalid signature")
 
-    # 3. Parse payload
-    payload = await request.json()
+    # 3. Parse payload from raw body (avoid double read via request.json())
+    payload = json.loads(body)
 
     # 4. Only process pull_request events (opened or synchronize)
     if x_github_event != "pull_request":
