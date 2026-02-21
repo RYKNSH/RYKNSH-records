@@ -15,6 +15,7 @@ import httpx
 from agent.checkpointer import close_checkpointer, init_checkpointer
 from agent.graph import qa_agent, rebuild_with_checkpointer, QAState
 from agent.tenant import build_thread_id, resolve_tenant
+from agent.usage import check_usage_allowed, get_usage, record_usage, update_plan
 from server.config import get_settings
 from server.queue import close_queue, enqueue, init_queue
 from worker.consumer import consumer_loop
@@ -43,7 +44,7 @@ async def lifespan(app: FastAPI):
         _worker_task = asyncio.create_task(consumer_loop())
         logger.info("Worker consumer task started")
 
-    logger.info("Velie QA Agent v0.3.0 started")
+    logger.info("Velie QA Agent v0.4.0 started")
     yield
 
     # Shutdown
@@ -62,7 +63,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Velie QA Agent",
     description="AI-powered code review bot for RYKNSH records",
-    version="0.3.0",
+    version="0.4.0",
     lifespan=lifespan,
 )
 
@@ -94,6 +95,17 @@ async def run_review(state: QAState, config: dict | None = None) -> None:
             await qa_agent.ainvoke(state, config=config)
         else:
             await qa_agent.ainvoke(state)
+
+        # Record usage after successful review
+        tenant_id = (config or {}).get("configurable", {}).get("tenant_id", "default")
+        model_used = (config or {}).get("configurable", {}).get("llm_model", "claude-sonnet")
+        record_usage(
+            tenant_id=tenant_id,
+            repo_full_name=state["repo_full_name"],
+            pr_number=state["pr_number"],
+            model_used=model_used,
+        )
+
         logger.info("Review completed for %s", pr_id)
     except httpx.HTTPStatusError as exc:
         logger.error(
@@ -118,10 +130,16 @@ async def health_check():
     return {
         "status": "ok",
         "service": "velie-qa-agent",
-        "version": "0.3.0",
+        "version": "0.4.0",
         "stateful": has_checkpointer,
         "queue": "redis" if has_redis else "memory",
     }
+
+
+@app.get("/api/usage/{tenant_id}")
+async def usage_endpoint(tenant_id: str, month: str | None = None):
+    """Get usage data for a tenant."""
+    return get_usage(tenant_id, month)
 
 
 @app.post("/webhook/github")
@@ -175,15 +193,26 @@ async def github_webhook(
     tenant = await resolve_tenant(pr_data["installation_id"])
     thread_id = build_thread_id(tenant.tenant_id, pr_data["repo_full_name"], pr_data["pr_number"])
 
+    # 8. Check usage limits
+    allowed, reason = check_usage_allowed(str(tenant.tenant_id))
+    if not allowed:
+        logger.warning(
+            "Usage limit reached for tenant %s: %s",
+            tenant.name, reason,
+        )
+        return {"status": "skipped", "reason": reason}
+
     config = {
         "configurable": {
             "thread_id": thread_id,
             "tenant_id": str(tenant.tenant_id),
             "llm_model": tenant.llm_model,
+            "auto_suggest": tenant.auto_suggest,
+            "auto_fix_threshold": tenant.auto_fix_threshold,
         }
     }
 
-    # 8. Enqueue or run directly
+    # 9. Enqueue or run directly
     from server.queue import _redis
     if _redis is not None:
         # Queue mode: enqueue for worker
@@ -192,7 +221,7 @@ async def github_webhook(
         dispatch = f"queued (job={job_id})"
     else:
         # Direct mode: BackgroundTasks fallback
-        state: QAState = {**pr_data, "diff": "", "review_body": ""}
+        state: QAState = {**pr_data, "diff": "", "review_body": "", "suggestions": [], "fix_pr_url": ""}
         background_tasks.add_task(run_review, state, config)
         dispatch = "background_task"
 
@@ -218,12 +247,13 @@ async def _handle_installation(payload: dict) -> dict:
 
     if action == "created":
         logger.info("GitHub App installed by %s (installation_id=%s)", account, installation_id)
-        # TODO: Auto-register tenant in Supabase
-        return {"status": "installed", "account": account}
+        # Auto-register tenant with free plan
+        update_plan(str(installation_id), "free")
+        return {"status": "installed", "account": account, "plan": "free"}
 
     elif action == "deleted":
         logger.info("GitHub App uninstalled by %s (installation_id=%s)", account, installation_id)
-        # TODO: Deactivate tenant in Supabase
         return {"status": "uninstalled", "account": account}
 
     return {"status": "ignored", "reason": f"Installation action: {action}"}
+
