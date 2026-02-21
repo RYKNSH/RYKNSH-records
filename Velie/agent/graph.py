@@ -8,6 +8,8 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, TypedDict
 
+from langchain_core.runnables import RunnableConfig
+
 import httpx
 from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -16,6 +18,9 @@ from langgraph.graph.state import CompiledStateGraph
 
 from agent.prompts import REVIEW_USER_TEMPLATE, SYSTEM_PROMPT
 from server.config import get_settings
+
+if TYPE_CHECKING:
+    from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
 logger = logging.getLogger(__name__)
 
@@ -89,11 +94,16 @@ async def fetch_diff(state: QAState) -> dict:
     return {"diff": diff_text}
 
 
-async def review_code(state: QAState) -> dict:
+async def review_code(state: QAState, config: RunnableConfig) -> dict:
     """Use Claude to review the code diff."""
     cfg = get_settings()
+
+    # Check for tenant-specific model override via config
+    tenant_model = (config.get("configurable", {}) or {}).get("llm_model")
+    model_name = tenant_model or "claude-sonnet-4-20250514"
+
     llm = ChatAnthropic(
-        model="claude-sonnet-4-20250514",
+        model=model_name,
         api_key=cfg.anthropic_api_key,
         max_tokens=4096,
         temperature=0.1,
@@ -147,8 +157,13 @@ async def post_review(state: QAState) -> dict:
 # Graph Definition
 # ---------------------------------------------------------------------------
 
-def build_qa_graph() -> CompiledStateGraph:
-    """Build the QA review graph: fetch_diff → review_code → post_review."""
+def build_qa_graph(checkpointer: AsyncPostgresSaver | None = None) -> CompiledStateGraph:
+    """Build the QA review graph: fetch_diff → review_code → post_review.
+
+    Args:
+        checkpointer: Optional AsyncPostgresSaver for stateful persistence.
+                      If None, the graph runs in stateless mode.
+    """
     graph = StateGraph(QAState)
 
     graph.add_node("fetch_diff", fetch_diff)
@@ -160,8 +175,18 @@ def build_qa_graph() -> CompiledStateGraph:
     graph.add_edge("review_code", "post_review")
     graph.add_edge("post_review", END)
 
-    return graph.compile()
+    return graph.compile(checkpointer=checkpointer)
 
 
-# Compiled graph — singleton
+# Compiled graph — starts stateless, rebuilt with checkpointer via lifespan
 qa_agent = build_qa_graph()
+
+
+def rebuild_with_checkpointer(checkpointer: AsyncPostgresSaver | None) -> None:
+    """Rebuild the global qa_agent with a checkpointer (called during lifespan)."""
+    global qa_agent
+    if checkpointer is not None:
+        qa_agent = build_qa_graph(checkpointer=checkpointer)
+        logger.info("QA Agent rebuilt with AsyncPostgresSaver (stateful mode)")
+    else:
+        logger.info("QA Agent running in stateless mode (no checkpointer)")

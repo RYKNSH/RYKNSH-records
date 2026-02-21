@@ -6,19 +6,41 @@ import hashlib
 import hmac
 import json
 import logging
+from contextlib import asynccontextmanager
 
 from fastapi import BackgroundTasks, FastAPI, Header, HTTPException, Request
 import httpx
 
-from agent.graph import qa_agent, QAState
+from agent.checkpointer import close_checkpointer, init_checkpointer
+from agent.graph import qa_agent, rebuild_with_checkpointer, QAState
+from agent.tenant import build_thread_id, resolve_tenant
 from server.config import get_settings
 
 logger = logging.getLogger(__name__)
 
+
+# ---------------------------------------------------------------------------
+# Application Lifespan
+# ---------------------------------------------------------------------------
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Initialize resources on startup, clean up on shutdown."""
+    # Startup
+    checkpointer = await init_checkpointer()
+    rebuild_with_checkpointer(checkpointer)
+    logger.info("Velie QA Agent started")
+    yield
+    # Shutdown
+    await close_checkpointer()
+    logger.info("Velie QA Agent stopped")
+
+
 app = FastAPI(
     title="Velie QA Agent",
     description="AI-powered code review bot for RYKNSH records",
-    version="0.1.0",
+    version="0.2.0",
+    lifespan=lifespan,
 )
 
 
@@ -40,12 +62,15 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
 # Background Task — Run the QA Agent
 # ---------------------------------------------------------------------------
 
-async def run_review(state: QAState) -> None:
+async def run_review(state: QAState, config: dict | None = None) -> None:
     """Execute the LangGraph QA review pipeline in background."""
     pr_id = f"PR #{state['pr_number']} in {state['repo_full_name']}"
     try:
         logger.info("Starting review for %s", pr_id)
-        await qa_agent.ainvoke(state)
+        if config:
+            await qa_agent.ainvoke(state, config=config)
+        else:
+            await qa_agent.ainvoke(state)
         logger.info("Review completed for %s", pr_id)
     except httpx.HTTPStatusError as exc:
         logger.error(
@@ -63,7 +88,14 @@ async def run_review(state: QAState) -> None:
 @app.get("/health")
 async def health_check():
     """Health check endpoint."""
-    return {"status": "ok", "service": "velie-qa-agent", "version": "0.1.0"}
+    from agent.checkpointer import get_checkpointer
+    has_checkpointer = get_checkpointer() is not None
+    return {
+        "status": "ok",
+        "service": "velie-qa-agent",
+        "version": "0.2.0",
+        "stateful": has_checkpointer,
+    }
 
 
 @app.post("/webhook/github")
@@ -111,16 +143,29 @@ async def github_webhook(
         "review_body": "",
     }
 
-    # 6. Enqueue background review
-    background_tasks.add_task(run_review, state)
+    # 6. Resolve tenant and build RunnableConfig
+    tenant = await resolve_tenant(state["installation_id"])
+    thread_id = build_thread_id(tenant.tenant_id, state["repo_full_name"], state["pr_number"])
+
+    config = {
+        "configurable": {
+            "thread_id": thread_id,
+            "tenant_id": str(tenant.tenant_id),
+            "llm_model": tenant.llm_model,
+        }
+    }
+
+    # 7. Enqueue background review
+    background_tasks.add_task(run_review, state, config)
 
     logger.info(
-        "Queued review for PR #%d in %s (action: %s)",
-        state["pr_number"], state["repo_full_name"], action,
+        "Queued review for PR #%d in %s (tenant: %s, action: %s)",
+        state["pr_number"], state["repo_full_name"], tenant.name, action,
     )
 
     return {
         "status": "queued",
         "pr_number": state["pr_number"],
         "repo": state["repo_full_name"],
+        "tenant": tenant.name,
     }
