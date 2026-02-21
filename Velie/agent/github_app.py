@@ -37,7 +37,7 @@ def _generate_jwt() -> str:
     payload = {
         "iat": now - 60,       # Issued at (60s clock drift buffer)
         "exp": now + (10 * 60),  # Expires in 10 minutes
-        "iss": cfg.github_app_id,
+        "iss": str(cfg.github_app_id),
     }
 
     # Handle private key that may be stored with escaped newlines
