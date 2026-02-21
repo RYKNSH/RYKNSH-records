@@ -33,6 +33,7 @@ from agent.prompts import (
     SUGGESTION_USER_TEMPLATE,
     SYSTEM_PROMPT,
 )
+from agent.repo_learner import get_context_prompt
 from agent.sanitizer import sanitize_diff
 from agent.suggestions import build_review_comments, parse_suggestions
 from server.config import get_settings
@@ -52,6 +53,14 @@ def _get_http_client() -> httpx.AsyncClient:
     if _http_client is None or _http_client.is_closed:
         _http_client = httpx.AsyncClient(timeout=30.0)
     return _http_client
+
+
+def _get_repo_context(repo_full_name: str) -> str:
+    """Load repo-specific context from learned patterns."""
+    try:
+        return get_context_prompt(repo_full_name)
+    except Exception:
+        return ""
 
 
 # ---------------------------------------------------------------------------
@@ -136,6 +145,7 @@ async def review_code(state: QAState, config: RunnableConfig) -> dict:
         pr_author=state["pr_author"],
         pr_body=state.get("pr_body", "No description provided."),
         diff=state["diff"],
+        repo_context=_get_repo_context(state["repo_full_name"]),
     )
 
     messages = [

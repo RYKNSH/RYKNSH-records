@@ -16,6 +16,8 @@ from agent.checkpointer import close_checkpointer, init_checkpointer
 from agent.graph import qa_agent, rebuild_with_checkpointer, QAState
 from agent.tenant import build_thread_id, resolve_tenant
 from agent.usage import check_usage_allowed, get_usage, record_usage, update_plan
+from agent.trust import get_trust_score
+from agent.health import get_health_summary, record_startup
 from server.config import get_settings
 from server.queue import close_queue, enqueue, init_queue
 from worker.consumer import consumer_loop
@@ -140,6 +142,18 @@ async def health_check():
 async def usage_endpoint(tenant_id: str, month: str | None = None):
     """Get usage data for a tenant."""
     return get_usage(tenant_id, month)
+
+
+@app.get("/api/trust")
+async def trust_endpoint(repo: str | None = None):
+    """Get trust score metrics."""
+    return get_trust_score(repo)
+
+
+@app.get("/api/health/detailed")
+async def detailed_health():
+    """Get detailed health summary."""
+    return get_health_summary()
 
 
 @app.post("/webhook/github")

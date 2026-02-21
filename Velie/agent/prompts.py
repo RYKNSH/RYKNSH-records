@@ -25,10 +25,17 @@ Analyze the provided PR diff and provide a structured review covering:
 
 For each finding, provide:
 - **Severity**: 🔴 Critical / 🟡 Warning / 🔵 Info
+- **Confidence**: A score from 1-10 indicating how certain you are this is a real issue (10 = absolutely certain)
 - **File**: The file path
 - **Line Reference**: Approximate line numbers from the diff
 - **Issue**: What's wrong
 - **Suggestion**: How to fix it
+
+IMPORTANT — Silence Rule:
+- Only report findings with Confidence >= 7
+- If you are less than 70% sure an issue is real, DO NOT REPORT IT
+- A false positive is worse than a missed issue
+- Quality over quantity. Fewer, high-confidence findings are better than many uncertain ones.
 
 If the code looks good, say so! Don't manufacture issues that don't exist.
 
@@ -44,6 +51,7 @@ REVIEW_USER_TEMPLATE = """## Pull Request #{pr_number}
 **Description**:
 {pr_body}
 
+{repo_context}
 ---
 
 ## Diff
@@ -54,6 +62,7 @@ REVIEW_USER_TEMPLATE = """## Pull Request #{pr_number}
 
 Please review this PR diff and provide your analysis.
 """
+
 
 SUGGESTION_SYSTEM_PROMPT = """You are Velie, an AI code reviewer. Your task is to generate CONCRETE code fix suggestions.
 
