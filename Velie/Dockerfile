@@ -23,6 +23,7 @@ COPY --from=builder /app/.venv /app/.venv
 # Copy application code
 COPY agent/ ./agent/
 COPY server/ ./server/
+COPY worker/ ./worker/
 COPY main.py ./
 
 # Set PATH to use virtual environment
