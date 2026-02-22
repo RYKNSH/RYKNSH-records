@@ -20,12 +20,20 @@ class CyrusState(TypedDict, total=False):
     icp_profiles: list[dict[str, Any]]
     detected_signals: list[dict[str, Any]]
 
+    # --- Trust Engine outputs ---
+    trust_scores: dict[str, Any]
+    trust_engine_output: dict[str, Any]
+
     # --- Acquisition Layer outputs ---
+    outbound_messages: list[dict[str, Any]]
+    outbound_status: str
+    defer_reason: str
+    inbound_magnets: list[dict[str, Any]]
+    inbound_schedule: dict[str, Any]
     generated_content: list[dict[str, Any]]
     qualified_leads: list[dict[str, Any]]
 
     # --- Conversion Layer outputs ---
-    trust_scores: dict[str, float]
     pipeline_results: list[dict[str, Any]]
 
     # --- Evolution Layer outputs ---
@@ -37,3 +45,4 @@ class CyrusState(TypedDict, total=False):
     current_node: str
     node_metrics: list[dict[str, Any]]
     errors: list[str]
+
