@@ -10,6 +10,10 @@ const navItems = [
     { href: "/billing", label: "Billing", icon: "💳" },
 ];
 
+// Note: English labels kept intentionally — Sidebar nav labels
+// stay in English as industry standard for developer tools.
+// Internal content is fully localized.
+
 export function Sidebar() {
     const pathname = usePathname();
 

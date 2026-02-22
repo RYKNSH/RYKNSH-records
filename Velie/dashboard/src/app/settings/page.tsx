@@ -36,40 +36,40 @@ export default function SettingsPage() {
             });
             const data = await res.json();
             if (data.success) {
-                setMessage("✅ Settings saved successfully!");
+                setMessage("✅ 設定を保存しました");
             } else {
-                setMessage("❌ Failed to save settings");
+                setMessage("❌ 保存に失敗しました");
             }
         } catch {
-            setMessage("❌ Error saving settings");
+            setMessage("❌ エラーが発生しました");
         }
         setSaving(false);
     }
 
     const sections: { title: string; icon: string; fields: SettingField[] }[] = [
         {
-            title: "Review Configuration",
-            icon: "🔧",
+            title: "レビュー設定",
+            icon: "🔍",
             fields: [
-                { label: "LLM Model", key: "llm_model", value: (settings.llm_model as string) || "claude-sonnet-4-20250514", type: "select", options: ["claude-sonnet-4-20250514", "claude-3-5-haiku-20241022"] },
-                { label: "Review Language", key: "review_language", value: (settings.review_language as string) || "English", type: "select", options: ["English", "Japanese", "Auto-detect"] },
-                { label: "Max Diff Size", key: "max_diff_size", value: (settings.max_diff_size as string) || "60,000 chars", type: "text" },
+                { label: "AIモデル", key: "llm_model", value: (settings.llm_model as string) || "claude-sonnet-4-20250514", type: "select", options: ["claude-sonnet-4-20250514", "claude-3-5-haiku-20241022"] },
+                { label: "レビュー言語", key: "review_language", value: (settings.review_language as string) || "Japanese", type: "select", options: ["Japanese", "English", "Auto-detect"] },
+                { label: "最大diffサイズ", key: "max_diff_size", value: (settings.max_diff_size as string) || "60,000 chars", type: "text" },
             ],
         },
         {
-            title: "Auto-Fix",
+            title: "自動修正",
             icon: "🔧",
             fields: [
-                { label: "Auto-Fix Threshold", key: "auto_fix_threshold", value: (settings.auto_fix_threshold as string) || "off", type: "select", options: ["off", "critical", "warning"] },
-                { label: "Auto Suggestions", key: "auto_suggest", value: (settings.auto_suggest as boolean) ?? true, type: "toggle" },
+                { label: "自動修正トリガー", key: "auto_fix_threshold", value: (settings.auto_fix_threshold as string) || "off", type: "select", options: ["off", "critical", "warning"] },
+                { label: "修正提案を自動生成", key: "auto_suggest", value: (settings.auto_suggest as boolean) ?? true, type: "toggle" },
             ],
         },
         {
-            title: "Notifications",
+            title: "通知",
             icon: "🔔",
             fields: [
-                { label: "Email on Critical", key: "email_on_critical", value: (settings.email_on_critical as boolean) ?? true, type: "toggle" },
-                { label: "Slack Integration", key: "slack_integration", value: (settings.slack_integration as boolean) ?? false, type: "toggle" },
+                { label: "危険検出時にメール通知", key: "email_on_critical", value: (settings.email_on_critical as boolean) ?? true, type: "toggle" },
+                { label: "Slack連携", key: "slack_integration", value: (settings.slack_integration as boolean) ?? false, type: "toggle" },
             ],
         },
         {
@@ -78,7 +78,7 @@ export default function SettingsPage() {
             fields: [
                 { label: "App ID", key: "app_id", value: "2915193", type: "readonly" },
                 { label: "Installation ID", key: "installation_id", value: "111510454", type: "readonly" },
-                { label: "Permissions", key: "permissions", value: "Contents (R), Pull Requests (RW)", type: "readonly" },
+                { label: "権限", key: "permissions", value: "Contents (R), Pull Requests (RW)", type: "readonly" },
             ],
         },
     ];
@@ -89,8 +89,8 @@ export default function SettingsPage() {
 
             <main className="flex-1 ml-64 p-8">
                 <div className="mb-8">
-                    <h2 className="text-2xl font-bold text-white">Settings</h2>
-                    <p className="text-sm text-gray-500 mt-1">Configure your AI code review preferences</p>
+                    <h2 className="text-2xl font-bold text-white">設定</h2>
+                    <p className="text-sm text-gray-500 mt-1">AIコードレビューの動作をカスタマイズ</p>
                 </div>
 
                 {message && (
@@ -162,7 +162,7 @@ export default function SettingsPage() {
                         disabled={saving}
                         className="w-full py-3 rounded-xl bg-purple-500 hover:bg-purple-600 text-white font-medium text-sm transition-all hover:shadow-lg hover:shadow-purple-500/20 cursor-pointer disabled:opacity-50"
                     >
-                        {saving ? "Saving..." : "Save Configuration"}
+                        {saving ? "保存中..." : "設定を保存"}
                     </button>
                 </div>
             </main>

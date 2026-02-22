@@ -1,9 +1,5 @@
-"""Ada Core API — Tool SDK.
+"""Ada Core API — Tools Package."""
 
-Provides the AdaTool interface and ToolRegistry for subsidiaries
-to register tools that the LLM router graph can invoke.
-"""
+from agent.tools.registry import ToolRegistry, ToolSpec, tool_registry
 
-from agent.tools.base import AdaTool, ToolRegistry, get_global_registry
-
-__all__ = ["AdaTool", "ToolRegistry", "get_global_registry"]
+__all__ = ["ToolRegistry", "ToolSpec", "tool_registry"]
