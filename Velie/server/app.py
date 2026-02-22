@@ -199,6 +199,30 @@ async def shadow_report():
     return generate_accuracy_report()
 
 
+@app.post("/api/reactions")
+async def record_reaction_endpoint(request: Request):
+    """Record a 👍/👎 reaction on a review."""
+    from agent.reactions import record_reaction
+    body = await request.json()
+    review_id = body.get("review_id")
+    reaction = body.get("reaction")
+    if not review_id or reaction not in ("helpful", "not_helpful"):
+        raise HTTPException(status_code=400, detail="Invalid reaction")
+    return record_reaction(
+        review_id=review_id,
+        reaction=reaction,
+        tenant_id=body.get("tenant_id", "default"),
+        comment=body.get("comment", ""),
+    )
+
+
+@app.get("/api/reactions/stats")
+async def reaction_stats():
+    """Get PMF reaction statistics."""
+    from agent.reactions import get_reaction_stats
+    return get_reaction_stats()
+
+
 @app.post("/webhook/github")
 async def github_webhook(
     request: Request,

@@ -1,5 +1,6 @@
 import { Sidebar } from "@/components/sidebar";
 import { FixButton } from "@/components/fix-button";
+import { ReactionButtons } from "@/components/reaction-buttons";
 import { getReviews, timeAgo, type Review } from "@/lib/data";
 import Link from "next/link";
 
@@ -140,10 +141,15 @@ export default async function ReviewDetailPage({ params }: { params: Promise<{ i
                     </div>
                 )}
 
+                {/* Reaction — PMF計測 */}
+                <div className="glass p-6 flex items-center justify-center">
+                    <ReactionButtons reviewId={review.id} />
+                </div>
+
                 {/* Back link */}
                 <div className="mt-8">
                     <Link href="/reviews" className="text-sm text-purple-400 hover:text-purple-300 transition-colors">
-                        ← Back to all reviews
+                        ← レビュー一覧に戻る
                     </Link>
                 </div>
             </main>

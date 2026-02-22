@@ -37,7 +37,8 @@ INJECTION_PATTERNS: list[dict[str, Any]] = [
         "name": "instruction_override",
         "pattern": re.compile(
             r"(?i)(ignore|disregard|forget|override|bypass)\s+"
-            r"(all\s+)?(previous|above|prior|earlier|your|system)\s+"
+            r"(all\s+)?(your\s+)?(my\s+)?"
+            r"(previous|above|prior|earlier|system)\s+"
             r"(instructions?|prompts?|rules?|guidelines?|context)",
         ),
         "severity": "high",
@@ -47,9 +48,10 @@ INJECTION_PATTERNS: list[dict[str, Any]] = [
         "name": "system_prompt_extraction",
         "pattern": re.compile(
             r"(?i)(show|reveal|display|print|output|repeat|echo|tell)\s+"
-            r"(me\s+)?(your\s+)?(the\s+)?"
+            r"(me\s+)?(your\s+)?(the\s+)?(any\s+)?"
             r"(system\s*prompt|system\s*message|initial\s+instructions?"
-            r"|hidden\s+instructions?|original\s+prompt)",
+            r"|hidden\s+instructions?|original\s+prompt"
+            r"|instructions?\s+verbatim)",
         ),
         "severity": "high",
     },
