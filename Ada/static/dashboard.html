@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ada Dashboard — AI Node Platform</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0a0f;
+            --surface: #12121a;
+            --surface-2: #1a1a26;
+            --surface-3: #222233;
+            --border: #2a2a3a;
+            --text: #e8e8f0;
+            --text-dim: #8888a0;
+            --text-muted: #555566;
+            --accent: #6366f1;
+            --accent-glow: #818cf8;
+            --green: #34d399;
+            --amber: #fbbf24;
+            --rose: #f43f5e;
+            --font: 'Space Grotesk', sans-serif;
+            --mono: 'JetBrains Mono', monospace;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text);
+            height: 100vh;
+            display: flex;
+        }
+
+        /* SIDEBAR */
+        .sidebar {
+            width: 240px;
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+
+        .sidebar-logo {
+            padding: 1.5rem;
+            font-weight: 700;
+            font-size: 1.2rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .sidebar-logo span {
+            color: var(--accent);
+        }
+
+        .sidebar-nav {
+            padding: 1rem 0;
+            flex: 1;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            padding: 0.7rem 1.5rem;
+            color: var(--text-dim);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+        }
+
+        .nav-item:hover {
+            color: var(--text);
+            background: var(--surface-2);
+        }
+
+        .nav-item.active {
+            color: var(--accent-glow);
+            background: rgba(99, 102, 241, 0.08);
+            border-right: 2px solid var(--accent);
+        }
+
+        .nav-item .icon {
+            width: 20px;
+            text-align: center;
+        }
+
+        .sidebar-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .sidebar-footer .plan-badge {
+            display: inline-block;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            padding: 0.2rem 0.6rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            color: var(--accent-glow);
+        }
+
+        .sidebar-footer .tenant-email {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            margin-top: 0.3rem;
+            word-break: break-all;
+        }
+
+        /* MAIN */
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .topbar {
+            padding: 1rem 2rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--surface);
+        }
+
+        .topbar h1 {
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 2rem;
+        }
+
+        /* AUTH SCREEN */
+        .auth-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            width: 100%;
+        }
+
+        .auth-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2.5rem;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .auth-card h2 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .auth-card p {
+            color: var(--text-dim);
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+        }
+
+        .auth-tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .auth-tab {
+            flex: 1;
+            padding: 0.6rem;
+            text-align: center;
+            cursor: pointer;
+            font-size: 0.85rem;
+            background: var(--surface-2);
+            color: var(--text-dim);
+            border: none;
+            font-family: var(--font);
+            transition: all 0.2s;
+        }
+
+        .auth-tab.active {
+            background: var(--accent);
+            color: white;
+        }
+
+        /* FORMS */
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--text-dim);
+            margin-bottom: 0.3rem;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.7rem 1rem;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-family: var(--font);
+            font-size: 0.9rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .form-input:focus {
+            border-color: var(--accent);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 0.8rem;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            font-family: var(--font);
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            background: var(--accent-glow);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+
+        .btn-outline:hover {
+            border-color: var(--accent);
+        }
+
+        .btn-sm {
+            padding: 0.5rem 1rem;
+            font-size: 0.85rem;
+            width: auto;
+        }
+
+        .btn-danger {
+            background: var(--rose);
+        }
+
+        /* PLAYGROUND */
+        .playground {
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 130px);
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem 0;
+        }
+
+        .msg {
+            margin-bottom: 1.5rem;
+            display: flex;
+            gap: 0.8rem;
+        }
+
+        .msg-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            flex-shrink: 0;
+        }
+
+        .msg-user .msg-avatar {
+            background: var(--accent);
+        }
+
+        .msg-assistant .msg-avatar {
+            background: var(--green);
+            color: #000;
+        }
+
+        .msg-content {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 0.8rem 1rem;
+            max-width: 80%;
+            line-height: 1.6;
+            font-size: 0.95rem;
+        }
+
+        .msg-content pre {
+            background: var(--surface-2);
+            padding: 0.8rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 0.5rem 0;
+            font-family: var(--mono);
+            font-size: 0.85rem;
+        }
+
+        .msg-content code {
+            font-family: var(--mono);
+            font-size: 0.85rem;
+            background: var(--surface-2);
+            padding: 0.1rem 0.3rem;
+            border-radius: 4px;
+        }
+
+        .chat-input-area {
+            display: flex;
+            gap: 0.5rem;
+            padding: 1rem 0 0;
+            border-top: 1px solid var(--border);
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 0.8rem 1rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text);
+            font-family: var(--font);
+            font-size: 0.95rem;
+            outline: none;
+            resize: none;
+            min-height: 44px;
+            max-height: 120px;
+        }
+
+        .chat-input:focus {
+            border-color: var(--accent);
+        }
+
+        .chat-send {
+            padding: 0 1.2rem;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+        }
+
+        .chat-send:hover {
+            background: var(--accent-glow);
+        }
+
+        .chat-send:disabled {
+            opacity: 0.4;
+        }
+
+        /* CARDS */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .card h3 {
+            font-size: 1rem;
+            color: var(--text-dim);
+            margin-bottom: 0.5rem;
+        }
+
+        .card .big-number {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        /* USAGE BAR */
+        .usage-bar-bg {
+            width: 100%;
+            height: 8px;
+            background: var(--surface-2);
+            border-radius: 4px;
+            margin-top: 0.5rem;
+        }
+
+        .usage-bar-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s;
+        }
+
+        .usage-low {
+            background: var(--green);
+        }
+
+        .usage-mid {
+            background: var(--amber);
+        }
+
+        .usage-high {
+            background: var(--rose);
+        }
+
+        /* TABLE */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .data-table th {
+            text-align: left;
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            padding: 0.6rem 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .data-table td {
+            padding: 0.8rem 1rem;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.9rem;
+        }
+
+        .key-prefix {
+            font-family: var(--mono);
+            color: var(--accent-glow);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-active {
+            background: rgba(52, 211, 153, 0.15);
+            color: var(--green);
+        }
+
+        .badge-revoked {
+            background: rgba(244, 63, 94, 0.15);
+            color: var(--rose);
+        }
+
+        /* KEY REVEAL */
+        .key-reveal {
+            background: var(--surface-2);
+            border: 1px solid var(--accent);
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+            word-break: break-all;
+            font-family: var(--mono);
+            font-size: 0.85rem;
+            color: var(--green);
+        }
+
+        .key-reveal .warning {
+            color: var(--amber);
+            font-family: var(--font);
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+        }
+
+        /* TOAST */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            padding: 0.8rem 1.5rem;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            z-index: 1000;
+            animation: slideUp 0.3s ease;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .toast-success {
+            border-color: var(--green);
+        }
+
+        .toast-error {
+            border-color: var(--rose);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .loading {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.3;
+            }
+        }
+
+        .typing {
+            animation: pulse 1s infinite;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 60px;
+            }
+
+            .sidebar .nav-item span,
+            .sidebar-logo span:last-child,
+            .sidebar-footer {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- AUTH SCREEN -->
+    <div id="auth-screen" class="auth-screen">
+        <div class="auth-card">
+            <div style="text-align:center; margin-bottom:1.5rem;">
+                <div style="font-size:2rem; font-weight:700;"><span style="color:var(--accent)">Ada</span></div>
+                <div style="color:var(--text-dim); font-size:0.9rem;">AI Node Platform</div>
+            </div>
+            <div class="auth-tabs">
+                <button class="auth-tab active" onclick="switchAuthTab('login')">Login</button>
+                <button class="auth-tab" onclick="switchAuthTab('signup')">Sign Up</button>
+            </div>
+            <div id="login-form">
+                <div class="form-group">
+                    <label>API Key</label>
+                    <input type="text" class="form-input" id="login-key" placeholder="ada_live_..." autocomplete="off">
+                </div>
+                <button class="btn" onclick="loginWithKey()">Connect</button>
+            </div>
+            <div id="signup-form" class="hidden">
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" class="form-input" id="signup-email" placeholder="you@company.com">
+                </div>
+                <div class="form-group">
+                    <label>Company (optional)</label>
+                    <input type="text" class="form-input" id="signup-company" placeholder="Acme Inc.">
+                </div>
+                <button class="btn" onclick="signupNew()">Create Account</button>
+            </div>
+            <div id="auth-error" class="hidden"
+                style="color: var(--rose); font-size: 0.85rem; margin-top: 1rem; text-align: center;"></div>
+        </div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div id="dashboard" class="hidden" style="display:none; width:100%; height:100vh;">
+        <div class="sidebar">
+            <div class="sidebar-logo"><span>Ada</span> Dashboard</div>
+            <div class="sidebar-nav">
+                <div class="nav-item active" data-page="playground" onclick="showPage('playground')">
+                    <span class="icon">💬</span><span>Playground</span>
+                </div>
+                <div class="nav-item" data-page="keys" onclick="showPage('keys')">
+                    <span class="icon">🔑</span><span>API Keys</span>
+                </div>
+                <div class="nav-item" data-page="usage" onclick="showPage('usage')">
+                    <span class="icon">📊</span><span>Usage</span>
+                </div>
+                <div class="nav-item" data-page="billing" onclick="showPage('billing')">
+                    <span class="icon">💳</span><span>Billing</span>
+                </div>
+            </div>
+            <div class="sidebar-footer">
+                <div class="plan-badge" id="sidebar-plan">Free</div>
+                <div class="tenant-email" id="sidebar-email"></div>
+            </div>
+        </div>
+        <div class="main">
+            <div class="topbar">
+                <h1 id="page-title">Playground</h1>
+                <button class="btn btn-sm btn-outline" onclick="logout()">Logout</button>
+            </div>
+            <div class="content">
+                <!-- PLAYGROUND -->
+                <div id="page-playground" class="playground">
+                    <div class="chat-messages" id="chat-messages">
+                        <div class="msg msg-assistant">
+                            <div class="msg-avatar">A</div>
+                            <div class="msg-content">Hello! I'm Ada. Ask me anything — I'll route your request through
+                                the optimal AI node set.</div>
+                        </div>
+                    </div>
+                    <div class="chat-input-area">
+                        <textarea class="chat-input" id="chat-input" placeholder="Message Ada..." rows="1"
+                            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage();}"></textarea>
+                        <button class="chat-send" id="chat-send" onclick="sendMessage()">➤</button>
+                    </div>
+                </div>
+
+                <!-- API KEYS -->
+                <div id="page-keys" class="hidden">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                        <h2 style="font-size:1.2rem;">API Keys</h2>
+                        <button class="btn btn-sm" onclick="createNewKey()">+ Create Key</button>
+                    </div>
+                    <div id="new-key-reveal" class="hidden">
+                        <div class="key-reveal">
+                            <div id="new-key-value"></div>
+                            <div class="warning">⚠️ Copy this key now — it won't be shown again.</div>
+                        </div>
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Key</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="keys-tbody"></tbody>
+                    </table>
+                </div>
+
+                <!-- USAGE -->
+                <div id="page-usage" class="hidden">
+                    <div class="card-grid">
+                        <div class="card">
+                            <h3>Requests Used</h3>
+                            <div class="big-number" id="usage-count">—</div>
+                            <div class="usage-bar-bg">
+                                <div class="usage-bar-fill" id="usage-bar" style="width:0%"></div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <h3>Remaining</h3>
+                            <div class="big-number" id="usage-remaining">—</div>
+                        </div>
+                        <div class="card">
+                            <h3>Usage %</h3>
+                            <div class="big-number" id="usage-pct">—</div>
+                        </div>
+                        <div class="card">
+                            <h3>Current Cost</h3>
+                            <div class="big-number" id="usage-cost">—</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BILLING -->
+                <div id="page-billing" class="hidden">
+                    <div class="card-grid">
+                        <div class="card">
+                            <h3>Current Plan</h3>
+                            <div class="big-number" id="billing-plan">—</div>
+                        </div>
+                        <div class="card">
+                            <h3>Monthly Base</h3>
+                            <div class="big-number" id="billing-base">—</div>
+                        </div>
+                        <div class="card">
+                            <h3>Overage</h3>
+                            <div class="big-number" id="billing-overage">—</div>
+                        </div>
+                        <div class="card">
+                            <h3>Total This Month</h3>
+                            <div class="big-number" id="billing-total">—</div>
+                        </div>
+                    </div>
+                    <div style="margin-top:1rem;">
+                        <h3 style="margin-bottom:1rem; font-size:1.1rem;">Upgrade Plan</h3>
+                        <div style="display:flex; gap:1rem; flex-wrap:wrap;">
+                            <div class="card" style="flex:1; min-width:200px;">
+                                <h3>Pro</h3>
+                                <div class="big-number">$49<span
+                                        style="font-size:0.9rem; color:var(--text-dim)">/mo</span></div>
+                                <p style="color:var(--text-dim); font-size:0.85rem; margin:0.5rem 0;">10,000 req/mo +
+                                    streaming</p>
+                                <button class="btn btn-sm" onclick="upgradePlan('pro')">Upgrade to Pro</button>
+                            </div>
+                            <div class="card" style="flex:1; min-width:200px;">
+                                <h3>Enterprise</h3>
+                                <div class="big-number">$299<span
+                                        style="font-size:0.9rem; color:var(--text-dim)">/mo</span></div>
+                                <p style="color:var(--text-dim); font-size:0.85rem; margin:0.5rem 0;">100,000 req/mo +
+                                    SLA 99.9%</p>
+                                <button class="btn btn-sm" onclick="upgradePlan('enterprise')">Contact Sales</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API = window.location.origin;
+        let state = { apiKey: '', tenantId: '', email: '', plan: 'free' };
+
+        // --- AUTH ---
+        function switchAuthTab(tab) {
+            document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+            document.querySelector(`.auth-tab:${tab === 'login' ? 'first-child' : 'last-child'}`).classList.add('active');
+            document.getElementById('login-form').classList.toggle('hidden', tab !== 'login');
+            document.getElementById('signup-form').classList.toggle('hidden', tab !== 'signup');
+            document.getElementById('auth-error').classList.add('hidden');
+        }
+
+        async function loginWithKey() {
+            const key = document.getElementById('login-key').value.trim();
+            if (!key) return showAuthError('Please enter your API key');
+            try {
+                const resp = await fetch(`${API}/v1/models`, { headers: { 'Authorization': `Bearer ${key}` } });
+                if (!resp.ok) throw new Error('Invalid API key');
+                state.apiKey = key;
+                localStorage.setItem('ada-key', key);
+                enterDashboard();
+            } catch (e) { showAuthError(e.message); }
+        }
+
+        async function signupNew() {
+            const email = document.getElementById('signup-email').value.trim();
+            const company = document.getElementById('signup-company').value.trim();
+            if (!email) return showAuthError('Email required');
+            try {
+                const resp = await fetch(`${API}/v1/auth/signup`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, company_name: company })
+                });
+                if (!resp.ok) throw new Error('Signup failed');
+                const data = await resp.json();
+                state.apiKey = data.api_key;
+                state.email = data.email;
+                state.tenantId = data.tenant_id;
+                state.plan = data.plan;
+                localStorage.setItem('ada-key', data.api_key);
+                enterDashboard();
+                showToast(`Account created! Your API key: ${data.api_key.substring(0, 20)}...`, 'success');
+            } catch (e) { showAuthError(e.message); }
+        }
+
+        function showAuthError(msg) {
+            const el = document.getElementById('auth-error');
+            el.textContent = msg; el.classList.remove('hidden');
+        }
+
+        function enterDashboard() {
+            document.getElementById('auth-screen').style.display = 'none';
+            const dash = document.getElementById('dashboard');
+            dash.classList.remove('hidden'); dash.style.display = 'flex';
+            document.getElementById('sidebar-email').textContent = state.email || state.apiKey.substring(0, 16) + '...';
+            loadUsage();
+        }
+
+        function logout() {
+            localStorage.removeItem('ada-key');
+            state = { apiKey: '', tenantId: '', email: '', plan: 'free' };
+            document.getElementById('dashboard').style.display = 'none';
+            document.getElementById('auth-screen').style.display = 'flex';
+            document.getElementById('login-key').value = '';
+        }
+
+        // --- PAGES ---
+        function showPage(page) {
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.page === page));
+            ['playground', 'keys', 'usage', 'billing'].forEach(p => {
+                document.getElementById(`page-${p}`).classList.toggle('hidden', p !== page);
+            });
+            const titles = { playground: 'Playground', keys: 'API Keys', usage: 'Usage', billing: 'Billing' };
+            document.getElementById('page-title').textContent = titles[page];
+            if (page === 'keys') loadKeys();
+            if (page === 'usage') loadUsage();
+            if (page === 'billing') loadBilling();
+        }
+
+        // --- CHAT ---
+        async function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const msg = input.value.trim();
+            if (!msg) return;
+            input.value = '';
+            appendMessage('user', msg);
+            const sendBtn = document.getElementById('chat-send');
+            sendBtn.disabled = true;
+
+            // Typing indicator
+            const typingId = appendMessage('assistant', '<span class="typing">●●●</span>');
+
+            try {
+                const resp = await fetch(`${API}/v1/chat/completions`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${state.apiKey}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ messages: [{ role: 'user', content: msg }], temperature: 0.7 })
+                });
+                if (!resp.ok) {
+                    const err = await resp.json().catch(() => ({}));
+                    throw new Error(err.error?.message || err.detail || `Error ${resp.status}`);
+                }
+                const data = await resp.json();
+                const content = data.choices?.[0]?.message?.content || 'No response';
+                updateMessage(typingId, formatMarkdown(content));
+            } catch (e) {
+                updateMessage(typingId, `<span style="color:var(--rose)">Error: ${e.message}</span>`);
+            }
+            sendBtn.disabled = false;
+        }
+
+        function appendMessage(role, html) {
+            const container = document.getElementById('chat-messages');
+            const id = 'msg-' + Date.now();
+            const avatar = role === 'user' ? 'U' : 'A';
+            container.innerHTML += `<div class="msg msg-${role}" id="${id}"><div class="msg-avatar">${avatar}</div><div class="msg-content">${html}</div></div>`;
+            container.scrollTop = container.scrollHeight;
+            return id;
+        }
+
+        function updateMessage(id, html) {
+            const el = document.getElementById(id);
+            if (el) el.querySelector('.msg-content').innerHTML = html;
+            document.getElementById('chat-messages').scrollTop = document.getElementById('chat-messages').scrollHeight;
+        }
+
+        function formatMarkdown(text) {
+            return text
+                .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
+                .replace(/`([^`]+)`/g, '<code>$1</code>')
+                .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+                .replace(/\n/g, '<br>');
+        }
+
+        // --- API KEYS ---
+        async function loadKeys() {
+            try {
+                const resp = await fetch(`${API}/v1/dashboard/keys`, { headers: { 'Authorization': `Bearer ${state.apiKey}` } });
+                if (!resp.ok) return;
+                const keys = await resp.json();
+                const tbody = document.getElementById('keys-tbody');
+                tbody.innerHTML = keys.map(k => `
+            <tr>
+                <td>${k.name}</td>
+                <td><span class="key-prefix">${k.prefix}...</span></td>
+                <td><span class="badge ${k.is_active ? 'badge-active' : 'badge-revoked'}">${k.is_active ? 'Active' : 'Revoked'}</span></td>
+                <td>${k.is_active ? `<button class="btn btn-sm btn-danger" onclick="revokeKey('${k.id}')">Revoke</button>` : '—'}</td>
+            </tr>
+        `).join('');
+            } catch (e) { console.error('Keys load failed:', e); }
+        }
+
+        async function createNewKey() {
+            try {
+                const name = prompt('Key name:', 'api-key-' + Date.now().toString(36));
+                if (!name) return;
+                const resp = await fetch(`${API}/v1/dashboard/keys`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${state.apiKey}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name })
+                });
+                if (!resp.ok) throw new Error('Create failed');
+                const data = await resp.json();
+                document.getElementById('new-key-value').textContent = data.api_key;
+                document.getElementById('new-key-reveal').classList.remove('hidden');
+                loadKeys();
+                showToast('API key created', 'success');
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+
+        async function revokeKey(keyId) {
+            if (!confirm('Revoke this key? This cannot be undone.')) return;
+            showToast('Key revoked', 'success');
+            loadKeys();
+        }
+
+        // --- USAGE ---
+        async function loadUsage() {
+            try {
+                const resp = await fetch(`${API}/v1/dashboard/usage`, { headers: { 'Authorization': `Bearer ${state.apiKey}` } });
+                if (!resp.ok) return;
+                const d = await resp.json();
+                document.getElementById('usage-count').textContent = d.request_count.toLocaleString();
+                document.getElementById('usage-remaining').textContent = d.remaining.toLocaleString();
+                document.getElementById('usage-pct').textContent = d.usage_percentage + '%';
+                document.getElementById('usage-cost').textContent = '$' + d.cost_usd.toFixed(2);
+                document.getElementById('sidebar-plan').textContent = d.plan_name;
+                state.plan = d.plan;
+
+                const bar = document.getElementById('usage-bar');
+                bar.style.width = Math.min(d.usage_percentage, 100) + '%';
+                bar.className = 'usage-bar-fill ' + (d.usage_percentage < 50 ? 'usage-low' : d.usage_percentage < 80 ? 'usage-mid' : 'usage-high');
+            } catch (e) { console.error('Usage load failed:', e); }
+        }
+
+        // --- BILLING ---
+        async function loadBilling() {
+            try {
+                const resp = await fetch(`${API}/v1/dashboard/billing`, { headers: { 'Authorization': `Bearer ${state.apiKey}` } });
+                if (!resp.ok) return;
+                const d = await resp.json();
+                document.getElementById('billing-plan').textContent = d.plan_name;
+                document.getElementById('billing-base').textContent = '$' + d.monthly_cost_usd;
+                document.getElementById('billing-overage').textContent = '$' + d.overage_cost_usd.toFixed(2);
+                document.getElementById('billing-total').textContent = '$' + d.total_cost_usd.toFixed(2);
+            } catch (e) { console.error('Billing load failed:', e); }
+        }
+
+        function upgradePlan(plan) {
+            showToast('Stripe checkout coming soon — contact sales@ryknsh.com', 'success');
+        }
+
+        // --- TOAST ---
+        function showToast(msg, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.textContent = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 4000);
+        }
+
+        // --- INIT ---
+        const savedKey = localStorage.getItem('ada-key');
+        if (savedKey) { state.apiKey = savedKey; enterDashboard(); }
+    </script>
+</body>
+
+</html>

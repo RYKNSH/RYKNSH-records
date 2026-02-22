@@ -403,7 +403,7 @@ async def route_model(
 
 
 # ---------------------------------------------------------------------------
-# Landing Page
+# Landing Page + Dashboard
 # ---------------------------------------------------------------------------
 
 @app.get("/", include_in_schema=False)
@@ -413,6 +413,15 @@ async def landing_page():
     if lp.exists():
         return FileResponse(str(lp))
     return {"message": "Ada Core API", "docs": "/docs"}
+
+
+@app.get("/dashboard", include_in_schema=False)
+async def dashboard_page():
+    """Serve the customer dashboard."""
+    dp = _static_dir / "dashboard.html"
+    if dp.exists():
+        return FileResponse(str(dp))
+    return {"message": "Dashboard not found", "docs": "/docs"}
 
 
 # ---------------------------------------------------------------------------
