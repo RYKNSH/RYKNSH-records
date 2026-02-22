@@ -190,6 +190,7 @@ async def chat_completions(
     """OpenAI-compatible chat completions endpoint."""
     from server.rate_limit import rate_limiter
     from agent.graph import _convert_messages, select_model
+    from server.stripe_billing import stripe_billing
 
     # Rate limit check
     allowed, retry_after = rate_limiter.check(
@@ -200,6 +201,17 @@ async def chat_completions(
             status_code=429,
             content={"error": {"message": "Rate limit exceeded", "type": "rate_limit_error"}},
             headers={"Retry-After": str(int(retry_after) + 1)},
+        )
+
+    # Quota check (billing)
+    quota = stripe_billing.check_quota(str(tenant.tenant_id))
+    if not quota["has_quota"]:
+        return JSONResponse(
+            status_code=429,
+            content={"error": {
+                "message": f"Monthly quota exhausted ({quota['request_limit']} requests). Upgrade your plan at /v1/dashboard/billing.",
+                "type": "quota_exceeded",
+            }},
         )
 
     # Validate model if specified
@@ -214,6 +226,8 @@ async def chat_completions(
 
     # --- Streaming mode ---
     if request.stream:
+        # Increment usage before streaming starts
+        background_tasks.add_task(stripe_billing.increment_usage, str(tenant.tenant_id))
         return await _handle_streaming(request, tenant, request_id)
 
     # --- Non-streaming mode ---
@@ -247,6 +261,9 @@ async def chat_completions(
     except Exception:
         logger.exception("LLM invocation failed for request %s", request_id)
         raise HTTPException(status_code=502, detail="LLM invocation failed")
+
+    # Increment usage after successful invocation
+    background_tasks.add_task(stripe_billing.increment_usage, str(tenant.tenant_id))
 
     usage = result.get("usage", {})
     return ChatCompletionResponse(

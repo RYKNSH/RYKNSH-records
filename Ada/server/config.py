@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     redis_url: str | None = None
 
     # Ada API Authentication
-    ada_api_key: str = "ada-dev-key"
+    ada_api_key: str = ""
 
     # Stripe (Optional — free tier if not set)
     stripe_secret_key: str = ""

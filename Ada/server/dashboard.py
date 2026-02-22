@@ -49,6 +49,8 @@ class KeyCreateResponse(BaseModel):
 async def get_usage(tenant_id: str) -> DashboardUsage:
     """Get usage stats for dashboard."""
     from server.stripe_billing import stripe_billing
+    # Load from Supabase to get latest data
+    await stripe_billing.load_subscription(tenant_id)
     billing = stripe_billing.get_billing_info(tenant_id)
     remaining = max(0, billing["request_limit"] - billing["request_count"])
     pct = (billing["request_count"] / max(billing["request_limit"], 1)) * 100
@@ -96,6 +98,7 @@ async def revoke_key(tenant_id: str, key_id: str) -> dict[str, bool]:
 async def get_billing(tenant_id: str) -> dict[str, Any]:
     """Get billing info for dashboard."""
     from server.stripe_billing import stripe_billing
+    await stripe_billing.load_subscription(tenant_id)
     return stripe_billing.get_billing_info(tenant_id)
 
 

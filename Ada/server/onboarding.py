@@ -51,10 +51,14 @@ async def signup(request: SignupRequest) -> SignupResponse:
         mode="live",
     )
 
-    # Initialize subscription
+    # Initialize subscription and persist
     stripe_billing.get_or_create_subscription(tenant_id)
     if request.plan != "free":
-        stripe_billing.upgrade_plan(tenant_id, request.plan)
+        await stripe_billing.upgrade_plan_and_persist(tenant_id, request.plan)
+    else:
+        await stripe_billing._persist_subscription(
+            stripe_billing.get_or_create_subscription(tenant_id)
+        )
 
     # Persist tenant to Supabase
     await _persist_tenant(tenant_id, request)
