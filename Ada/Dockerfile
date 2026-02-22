@@ -24,6 +24,7 @@ COPY --from=builder /app/.venv /app/.venv
 COPY agent/ ./agent/
 COPY server/ ./server/
 COPY worker/ ./worker/
+COPY static/ ./static/
 COPY main.py ./
 
 # Set PATH to use virtual environment
