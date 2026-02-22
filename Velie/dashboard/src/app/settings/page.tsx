@@ -15,11 +15,16 @@ export default function SettingsPage() {
     const [settings, setSettings] = useState<Record<string, unknown>>({});
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState<string | null>(null);
+    const [appInfo, setAppInfo] = useState({ appId: "", installationId: "" });
 
     useEffect(() => {
         fetch("/api/settings")
             .then((r) => r.json())
             .then(setSettings)
+            .catch(() => { });
+        fetch("/api/session")
+            .then((r) => r.json())
+            .then((s: { appId: string; installationId: string }) => setAppInfo({ appId: s.appId, installationId: s.installationId }))
             .catch(() => { });
     }, []);
 
@@ -78,8 +83,8 @@ export default function SettingsPage() {
             title: "GitHub App",
             icon: "🔑",
             fields: [
-                { label: "App ID", key: "app_id", value: "2915193", type: "readonly" },
-                { label: "Installation ID", key: "installation_id", value: "111510454", type: "readonly" },
+                { label: "App ID", key: "app_id", value: appInfo.appId || "—", type: "readonly" },
+                { label: "Installation ID", key: "installation_id", value: appInfo.installationId || "—", type: "readonly" },
                 { label: t("settings.permissions"), key: "permissions", value: "Contents (R), Pull Requests (RW)", type: "readonly" },
             ],
         },

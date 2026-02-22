@@ -2,6 +2,9 @@
 
 Handles subscription management, usage-based billing, and webhook processing.
 Supports Free/Pro/Enterprise tiers with metered billing.
+
+PRODUCTION: Subscription state is persisted in Supabase `ada_subscriptions` table.
+In-memory dict is a cache for fast lookups within a single process lifetime.
 """
 
 from __future__ import annotations
@@ -22,6 +25,17 @@ PLANS = {
 }
 
 
+def _get_supabase_config() -> tuple[str, str] | None:
+    try:
+        from server.config import get_settings
+        cfg = get_settings()
+        if cfg.supabase_url and cfg.supabase_anon_key:
+            return cfg.supabase_url, cfg.supabase_anon_key
+    except Exception:
+        pass
+    return None
+
+
 class SubscriptionInfo(BaseModel):
     """Tenant subscription information."""
     tenant_id: str
@@ -34,23 +48,57 @@ class SubscriptionInfo(BaseModel):
 
 
 class StripeBilling:
-    """Stripe billing integration.
-
-    Falls back to in-memory tracking when Stripe is not configured.
-    """
+    """Stripe billing — Supabase-primary with in-memory cache."""
 
     def __init__(self) -> None:
-        self._subscriptions: dict[str, SubscriptionInfo] = {}
+        self._cache: dict[str, SubscriptionInfo] = {}
 
     def get_or_create_subscription(self, tenant_id: str) -> SubscriptionInfo:
         """Get or create a subscription for a tenant (defaults to free)."""
-        if tenant_id not in self._subscriptions:
-            self._subscriptions[tenant_id] = SubscriptionInfo(
-                tenant_id=tenant_id,
-                plan="free",
-                request_limit=PLANS["free"]["request_limit"],
-            )
-        return self._subscriptions[tenant_id]
+        if tenant_id in self._cache:
+            return self._cache[tenant_id]
+
+        # Not in cache — create default and persist
+        sub = SubscriptionInfo(
+            tenant_id=tenant_id,
+            plan="free",
+            request_limit=PLANS["free"]["request_limit"],
+        )
+        self._cache[tenant_id] = sub
+        return sub
+
+    async def load_subscription(self, tenant_id: str) -> SubscriptionInfo:
+        """Load subscription from Supabase, fallback to cache/default."""
+        if tenant_id in self._cache:
+            return self._cache[tenant_id]
+
+        sb = _get_supabase_config()
+        if sb:
+            try:
+                import httpx
+                url = f"{sb[0]}/rest/v1/ada_subscriptions?tenant_id=eq.{tenant_id}&limit=1"
+                headers = {"apikey": sb[1], "Authorization": f"Bearer {sb[1]}"}
+                async with httpx.AsyncClient(timeout=5.0) as client:
+                    resp = await client.get(url, headers=headers)
+                    resp.raise_for_status()
+                    rows = resp.json()
+                    if rows:
+                        row = rows[0]
+                        sub = SubscriptionInfo(
+                            tenant_id=tenant_id,
+                            plan=row.get("plan", "free"),
+                            stripe_customer_id=row.get("stripe_customer_id", ""),
+                            stripe_subscription_id=row.get("stripe_subscription_id", ""),
+                            request_count=row.get("request_count", 0),
+                            request_limit=PLANS.get(row.get("plan", "free"), PLANS["free"])["request_limit"],
+                            is_active=row.get("is_active", True),
+                        )
+                        self._cache[tenant_id] = sub
+                        return sub
+            except Exception as e:
+                logger.warning("Supabase subscription load failed: %s", e)
+
+        return self.get_or_create_subscription(tenant_id)
 
     def check_quota(self, tenant_id: str) -> dict[str, Any]:
         """Check if tenant has remaining quota."""
@@ -65,10 +113,14 @@ class StripeBilling:
             "overage_rate": PLANS[sub.plan]["overage_rate"],
         }
 
-    def increment_usage(self, tenant_id: str) -> dict[str, Any]:
-        """Record a request and return updated quota."""
+    async def increment_usage(self, tenant_id: str) -> dict[str, Any]:
+        """Record a request and persist to Supabase."""
         sub = self.get_or_create_subscription(tenant_id)
         sub.request_count += 1
+
+        # Persist usage increment to Supabase
+        await self._persist_usage(tenant_id, sub.request_count)
+
         return self.check_quota(tenant_id)
 
     def upgrade_plan(self, tenant_id: str, plan: str) -> SubscriptionInfo:
@@ -81,6 +133,12 @@ class StripeBilling:
         logger.info("Plan upgraded: tenant=%s plan=%s", tenant_id, plan)
         return sub
 
+    async def upgrade_plan_and_persist(self, tenant_id: str, plan: str) -> SubscriptionInfo:
+        """Upgrade plan and persist to Supabase."""
+        sub = self.upgrade_plan(tenant_id, plan)
+        await self._persist_subscription(sub)
+        return sub
+
     async def create_checkout_session(
         self,
         tenant_id: str,
@@ -91,7 +149,7 @@ class StripeBilling:
         cfg = get_settings()
 
         if not cfg.stripe_secret_key:
-            return {"url": "", "error": "Stripe not configured"}
+            return {"url": "", "error": "Stripe not configured — upgrade plan manually via API"}
 
         try:
             import stripe
@@ -104,7 +162,7 @@ class StripeBilling:
                 price_id = cfg.stripe_price_id_enterprise
 
             if not price_id:
-                return {"url": "", "error": f"No price ID for plan: {plan}"}
+                return {"url": "", "error": f"No price ID configured for plan: {plan}"}
 
             session = stripe.checkout.Session.create(
                 mode="subscription",
@@ -139,14 +197,14 @@ class StripeBilling:
                 tenant_id = session["metadata"].get("tenant_id", "")
                 plan = session["metadata"].get("plan", "pro")
                 if tenant_id:
-                    self.upgrade_plan(tenant_id, plan)
+                    await self.upgrade_plan_and_persist(tenant_id, plan)
                 return {"processed": True, "event": "checkout_completed"}
 
             elif event["type"] == "customer.subscription.deleted":
                 session = event["data"]["object"]
                 tenant_id = session.get("metadata", {}).get("tenant_id", "")
                 if tenant_id:
-                    self.upgrade_plan(tenant_id, "free")
+                    await self.upgrade_plan_and_persist(tenant_id, "free")
                 return {"processed": True, "event": "subscription_cancelled"}
 
             return {"processed": True, "event": event["type"]}
@@ -172,6 +230,52 @@ class StripeBilling:
             "overage_cost_usd": round(overage_cost, 4),
             "total_cost_usd": round(plan_info["price_usd"] + overage_cost, 4),
         }
+
+    async def _persist_subscription(self, sub: SubscriptionInfo) -> None:
+        """Upsert subscription to Supabase."""
+        sb = _get_supabase_config()
+        if not sb:
+            return
+        try:
+            import httpx
+            url = f"{sb[0]}/rest/v1/ada_subscriptions"
+            headers = {
+                "apikey": sb[1],
+                "Authorization": f"Bearer {sb[1]}",
+                "Content-Type": "application/json",
+                "Prefer": "resolution=merge-duplicates",
+            }
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                await client.post(url, headers=headers, json={
+                    "tenant_id": sub.tenant_id,
+                    "plan": sub.plan,
+                    "stripe_customer_id": sub.stripe_customer_id,
+                    "stripe_subscription_id": sub.stripe_subscription_id,
+                    "request_count": sub.request_count,
+                    "is_active": sub.is_active,
+                })
+        except Exception as e:
+            logger.warning("Subscription persist failed: %s", e)
+
+    async def _persist_usage(self, tenant_id: str, request_count: int) -> None:
+        """Update request count in Supabase."""
+        sb = _get_supabase_config()
+        if not sb:
+            return
+        try:
+            import httpx
+            url = f"{sb[0]}/rest/v1/ada_subscriptions?tenant_id=eq.{tenant_id}"
+            headers = {
+                "apikey": sb[1],
+                "Authorization": f"Bearer {sb[1]}",
+                "Content-Type": "application/json",
+            }
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                await client.patch(url, headers=headers, json={
+                    "request_count": request_count,
+                })
+        except Exception:
+            pass  # Non-blocking — usage sync is best-effort
 
 
 stripe_billing = StripeBilling()

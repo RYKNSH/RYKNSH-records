@@ -14,7 +14,6 @@ const planData = [
         featureKeys: ["feature.reviewsPerMonth", "feature.repos", "feature.communitySupport"] as const,
         featureParams: [{ n: 5 }, { n: 1 }, {}],
         model: "Claude Haiku",
-        current: true,
     },
     {
         key: "anshin",
@@ -23,7 +22,6 @@ const planData = [
         featureKeys: ["feature.reviewsPerMonth", "feature.repos", "feature.emailSupport", "feature.japaneseReview"] as const,
         featureParams: [{ n: 50 }, { n: 5 }, {}, {}],
         model: "Claude Sonnet",
-        current: false,
     },
     {
         key: "pro",
@@ -32,7 +30,6 @@ const planData = [
         featureKeys: ["feature.unlimitedReviews", "feature.repos", "feature.prioritySupport", "feature.customPrompts", "feature.oneClickFix"] as const,
         featureParams: [{}, { n: 10 }, {}, {}, {}],
         model: "Claude Sonnet",
-        current: false,
         recommended: true,
     },
     {
@@ -42,7 +39,6 @@ const planData = [
         featureKeys: ["feature.unlimitedAll", "feature.unlimitedRepos", "feature.dedicatedSupport", "feature.ssoSaml", "feature.onPremise"] as const,
         featureParams: [{}, {}, {}, {}, {}],
         model: "Claude Opus",
-        current: false,
     },
 ];
 
@@ -61,6 +57,7 @@ function BillingContent() {
     const [stats, setStats] = useState<DashboardStats>({ totalReviews: 0, criticalIssues: 0, repos: 0, apiCalls: 0 });
     const [upgradeMessage, setUpgradeMessage] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+    const [currentPlan, setCurrentPlan] = useState("free");
 
     useEffect(() => {
         fetch("/api/reviews")
@@ -74,6 +71,11 @@ function BillingContent() {
                     apiCalls: reviews.length * 2,
                 });
             })
+            .catch(() => { });
+
+        fetch("/api/session")
+            .then((r) => r.json())
+            .then((s: { plan: string }) => setCurrentPlan(s.plan || "free"))
             .catch(() => { });
 
         const success = searchParams.get("success");
@@ -156,7 +158,7 @@ function BillingContent() {
                             key={plan.key}
                             className={`glass p-6 relative ${plan.recommended
                                 ? "border-purple-500/40 glow"
-                                : plan.current
+                                : currentPlan === plan.key
                                     ? "border-emerald-500/30"
                                     : ""
                                 }`}
@@ -185,15 +187,15 @@ function BillingContent() {
 
                             <button
                                 onClick={() => handleUpgrade(plan.key)}
-                                disabled={plan.current || loading}
-                                className={`w-full py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer ${plan.current
+                                disabled={currentPlan === plan.key || loading}
+                                className={`w-full py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer ${currentPlan === plan.key
                                     ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 !cursor-default"
                                     : plan.recommended
                                         ? "bg-purple-500 hover:bg-purple-600 text-white hover:shadow-lg hover:shadow-purple-500/20"
                                         : "bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10"
                                     }`}
                             >
-                                {plan.current ? t("billing.currentPlan") : loading ? t("billing.processing") : t("billing.upgrade")}
+                                {currentPlan === plan.key ? t("billing.currentPlan") : loading ? t("billing.processing") : t("billing.upgrade")}
                             </button>
                         </div>
                     ))}

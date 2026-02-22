@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { LocaleSwitcher } from "@/components/locale-switcher";
+import { useLocale } from "@/components/locale-context";
 
 const navItems = [
     { href: "/dashboard", label: "Overview", icon: "📊" },
@@ -11,12 +13,36 @@ const navItems = [
     { href: "/billing", label: "Billing", icon: "💳" },
 ];
 
-// Note: English labels kept intentionally — Sidebar nav labels
-// stay in English as industry standard for developer tools.
-// Internal content is fully localized.
+const planLabels: Record<string, string> = {
+    free: "Free",
+    anshin: "Starter",
+    pro: "Pro",
+    team: "Team",
+};
+
+interface SessionData {
+    authenticated: boolean;
+    user: string;
+    login: string;
+    avatar: string;
+    plan: string;
+}
 
 export function Sidebar() {
     const pathname = usePathname();
+    const { t } = useLocale();
+    const [session, setSession] = useState<SessionData | null>(null);
+
+    useEffect(() => {
+        fetch("/api/session")
+            .then((r) => r.json())
+            .then(setSession)
+            .catch(() => { });
+    }, []);
+
+    const displayName = session?.user || session?.login || "Guest";
+    const initial = displayName.charAt(0).toUpperCase();
+    const planLabel = planLabels[session?.plan || "free"] || "Free";
 
     return (
         <aside className="w-64 h-screen fixed left-0 top-0 glass border-r border-white/5 flex flex-col z-50">
@@ -61,15 +87,23 @@ export function Sidebar() {
                 <LocaleSwitcher />
             </div>
 
-            {/* Footer — TODO: dynamic from auth */}
+            {/* User info — dynamic from session */}
             <div className="p-4 border-t border-white/5">
                 <div className="flex items-center gap-3 px-4 py-2">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-                        <span className="text-white text-xs font-bold">R</span>
-                    </div>
-                    <div>
-                        <p className="text-xs font-medium text-gray-300">RYKNSH records</p>
-                        <p className="text-[10px] text-gray-600">Free Plan</p>
+                    {session?.avatar ? (
+                        <img
+                            src={session.avatar}
+                            alt={displayName}
+                            className="w-8 h-8 rounded-full"
+                        />
+                    ) : (
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                            <span className="text-white text-xs font-bold">{initial}</span>
+                        </div>
+                    )}
+                    <div className="min-w-0">
+                        <p className="text-xs font-medium text-gray-300 truncate">{displayName}</p>
+                        <p className="text-[10px] text-gray-600">{planLabel} Plan</p>
                     </div>
                 </div>
             </div>

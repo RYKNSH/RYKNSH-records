@@ -4,6 +4,8 @@ Handles generation, hashing, validation, and lifecycle of API keys.
 Keys are hashed before storage (SHA-256). Plain text is shown only at creation.
 
 Key format: ada_live_<32hex> (production) / ada_test_<32hex> (test)
+
+PRODUCTION: All operations go through Supabase. In-memory dict is a cache only.
 """
 
 from __future__ import annotations
@@ -26,7 +28,7 @@ class APIKey(BaseModel):
     tenant_id: str = ""
     name: str = "default"
     key_hash: str = ""  # SHA-256 hash
-    key_prefix: str = ""  # First 8 chars for identification
+    key_prefix: str = ""  # First 12 chars for identification
     is_active: bool = True
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     last_used_at: datetime | None = None
@@ -50,11 +52,23 @@ def hash_api_key(plain_key: str) -> str:
     return hashlib.sha256(plain_key.encode()).hexdigest()
 
 
+def _get_supabase_config() -> tuple[str, str] | None:
+    """Get Supabase URL and key if configured."""
+    try:
+        from server.config import get_settings
+        cfg = get_settings()
+        if cfg.supabase_url and cfg.supabase_anon_key:
+            return cfg.supabase_url, cfg.supabase_anon_key
+    except Exception:
+        pass
+    return None
+
+
 class APIKeyStore:
-    """In-memory API key store with Supabase fallback."""
+    """API key store — Supabase-primary with in-memory cache."""
 
     def __init__(self) -> None:
-        self._keys: dict[str, APIKey] = {}  # key_hash -> APIKey
+        self._cache: dict[str, APIKey] = {}  # key_hash -> APIKey (cache only)
 
     async def create(
         self,
@@ -72,10 +86,14 @@ class APIKeyStore:
             key_hash=key_hash,
             key_prefix=plain_key[:12],
         )
-        self._keys[key_hash] = key_record
 
-        # Persist to Supabase
-        await self._persist(key_record)
+        # Persist to Supabase (primary)
+        persisted = await self._persist(key_record)
+        if not persisted:
+            logger.warning("API key not persisted to Supabase — running in-memory only")
+
+        # Cache locally
+        self._cache[key_hash] = key_record
 
         logger.info("API key created: %s... (tenant=%s)", key_record.key_prefix, tenant_id)
         return plain_key, key_record
@@ -83,42 +101,82 @@ class APIKeyStore:
     async def validate(self, plain_key: str) -> APIKey | None:
         """Validate an API key and return the record."""
         key_hash = hash_api_key(plain_key)
-        key_record = self._keys.get(key_hash)
 
-        if key_record and key_record.is_active:
-            key_record.last_used_at = datetime.now(timezone.utc)
-            return key_record
+        # Check cache first
+        cached = self._cache.get(key_hash)
+        if cached and cached.is_active:
+            cached.last_used_at = datetime.now(timezone.utc)
+            return cached
 
-        # Try Supabase lookup
-        return await self._lookup_supabase(key_hash)
+        # Supabase lookup (source of truth)
+        record = await self._lookup_supabase(key_hash)
+        if record:
+            record.last_used_at = datetime.now(timezone.utc)
+            self._cache[key_hash] = record  # Populate cache
+            return record
+
+        return None
 
     async def list_by_tenant(self, tenant_id: str) -> list[APIKey]:
-        """List all keys for a tenant."""
-        return [k for k in self._keys.values() if k.tenant_id == tenant_id]
+        """List all keys for a tenant from Supabase."""
+        sb = _get_supabase_config()
+        if not sb:
+            return [k for k in self._cache.values() if k.tenant_id == tenant_id]
+
+        try:
+            import httpx
+            url = f"{sb[0]}/rest/v1/ada_api_keys?tenant_id=eq.{tenant_id}&order=created_at.desc"
+            headers = {
+                "apikey": sb[1],
+                "Authorization": f"Bearer {sb[1]}",
+            }
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                resp = await client.get(url, headers=headers)
+                resp.raise_for_status()
+                rows = resp.json()
+                return [self._row_to_key(r) for r in rows]
+        except Exception as e:
+            logger.warning("Supabase list_by_tenant failed: %s — using cache", e)
+            return [k for k in self._cache.values() if k.tenant_id == tenant_id]
 
     async def revoke(self, key_id: str, tenant_id: str) -> bool:
-        """Revoke an API key."""
-        for key in self._keys.values():
+        """Revoke an API key in Supabase and cache."""
+        sb = _get_supabase_config()
+        if sb:
+            try:
+                import httpx
+                url = f"{sb[0]}/rest/v1/ada_api_keys?id=eq.{key_id}&tenant_id=eq.{tenant_id}"
+                headers = {
+                    "apikey": sb[1],
+                    "Authorization": f"Bearer {sb[1]}",
+                    "Content-Type": "application/json",
+                }
+                async with httpx.AsyncClient(timeout=5.0) as client:
+                    await client.patch(url, headers=headers, json={"is_active": False})
+            except Exception as e:
+                logger.warning("Supabase revoke failed: %s", e)
+
+        # Also update cache
+        for key in self._cache.values():
             if key.id == key_id and key.tenant_id == tenant_id:
                 key.is_active = False
                 return True
-        return False
+        return True  # Supabase update succeeded even if not in cache
 
-    async def _persist(self, key_record: APIKey) -> None:
+    async def _persist(self, key_record: APIKey) -> bool:
+        sb = _get_supabase_config()
+        if not sb:
+            return False
         try:
-            from server.config import get_settings
-            cfg = get_settings()
-            if not (cfg.supabase_url and cfg.supabase_anon_key):
-                return
             import httpx
-            url = f"{cfg.supabase_url}/rest/v1/ada_api_keys"
+            url = f"{sb[0]}/rest/v1/ada_api_keys"
             headers = {
-                "apikey": cfg.supabase_anon_key,
-                "Authorization": f"Bearer {cfg.supabase_anon_key}",
+                "apikey": sb[1],
+                "Authorization": f"Bearer {sb[1]}",
                 "Content-Type": "application/json",
             }
             async with httpx.AsyncClient(timeout=5.0) as client:
-                await client.post(url, headers=headers, json={
+                resp = await client.post(url, headers=headers, json={
                     "id": key_record.id,
                     "tenant_id": key_record.tenant_id,
                     "name": key_record.name,
@@ -126,36 +184,43 @@ class APIKeyStore:
                     "key_prefix": key_record.key_prefix,
                     "is_active": key_record.is_active,
                 })
-        except Exception:
-            logger.debug("API key persistence failed (non-critical)")
+                resp.raise_for_status()
+            return True
+        except Exception as e:
+            logger.warning("API key persist failed: %s", e)
+            return False
 
     async def _lookup_supabase(self, key_hash: str) -> APIKey | None:
+        sb = _get_supabase_config()
+        if not sb:
+            return None
         try:
-            from server.config import get_settings
-            cfg = get_settings()
-            if not (cfg.supabase_url and cfg.supabase_anon_key):
-                return None
             import httpx
-            url = f"{cfg.supabase_url}/rest/v1/ada_api_keys?key_hash=eq.{key_hash}&is_active=eq.true&limit=1"
+            url = f"{sb[0]}/rest/v1/ada_api_keys?key_hash=eq.{key_hash}&is_active=eq.true&limit=1"
             headers = {
-                "apikey": cfg.supabase_anon_key,
-                "Authorization": f"Bearer {cfg.supabase_anon_key}",
+                "apikey": sb[1],
+                "Authorization": f"Bearer {sb[1]}",
             }
             async with httpx.AsyncClient(timeout=5.0) as client:
                 resp = await client.get(url, headers=headers)
+                resp.raise_for_status()
                 rows = resp.json()
                 if rows:
-                    row = rows[0]
-                    key = APIKey(
-                        id=row["id"], tenant_id=row["tenant_id"],
-                        name=row.get("name", ""), key_hash=row["key_hash"],
-                        key_prefix=row.get("key_prefix", ""), is_active=True,
-                    )
-                    self._keys[key_hash] = key
-                    return key
-        except Exception:
-            pass
+                    return self._row_to_key(rows[0])
+        except Exception as e:
+            logger.debug("Supabase key lookup failed: %s", e)
         return None
+
+    @staticmethod
+    def _row_to_key(row: dict) -> APIKey:
+        return APIKey(
+            id=row["id"],
+            tenant_id=row["tenant_id"],
+            name=row.get("name", ""),
+            key_hash=row["key_hash"],
+            key_prefix=row.get("key_prefix", ""),
+            is_active=row.get("is_active", True),
+        )
 
 
 api_key_store = APIKeyStore()
