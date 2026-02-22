@@ -9,8 +9,9 @@ import time
 import uuid
 from contextlib import asynccontextmanager
 
-from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Request
+from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field
 
 from agent.checkpointer import close_checkpointer, init_checkpointer
@@ -82,22 +83,20 @@ if _static_dir.exists():
 # Auth Dependency
 # ---------------------------------------------------------------------------
 
+_bearer_scheme = HTTPBearer(
+    description="API Key — use your ada_live_* key as the Bearer token",
+    auto_error=False,
+)
+
+
 async def verify_api_key(
-    authorization: str | None = Header(None),
+    credentials: HTTPAuthorizationCredentials | None = Depends(_bearer_scheme),
 ) -> TenantConfig:
-    """Extract and verify API key from Authorization header."""
-    if not authorization:
-        raise HTTPException(status_code=401, detail="Missing Authorization header")
+    """Extract and verify API key from Authorization: Bearer header."""
+    if not credentials or not credentials.credentials:
+        raise HTTPException(status_code=401, detail="Missing Authorization header. Use: Bearer <your_api_key>")
 
-    # Support "Bearer <key>" format
-    if authorization.startswith("Bearer "):
-        api_key = authorization[7:]
-    else:
-        api_key = authorization
-
-    if not api_key:
-        raise HTTPException(status_code=401, detail="Empty API key")
-
+    api_key = credentials.credentials
     tenant = await resolve_tenant_by_api_key(api_key)
     return tenant
 
