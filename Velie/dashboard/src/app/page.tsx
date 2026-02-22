@@ -236,8 +236,16 @@ export default function LandingPage() {
             </section>
 
             {/* Footer */}
-            <footer className="relative z-10 border-t border-white/5 px-8 py-8 text-center">
-                <p className="text-xs text-gray-600">© 2026 RYKNSH records. All rights reserved.</p>
+            <footer className="relative z-10 border-t border-white/5 px-8 py-10">
+                <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+                    <p className="text-xs text-gray-600">© 2026 RYKNSH records. All rights reserved.</p>
+                    <div className="flex items-center gap-6">
+                        <Link href="/docs" className="text-xs text-gray-500 hover:text-gray-300 transition-colors">Docs</Link>
+                        <a href="https://github.com/apps/velie-ci" target="_blank" rel="noopener noreferrer" className="text-xs text-gray-500 hover:text-gray-300 transition-colors">GitHub</a>
+                        <span className="text-xs text-gray-600 cursor-default">Terms</span>
+                        <span className="text-xs text-gray-600 cursor-default">Privacy</span>
+                    </div>
+                </div>
             </footer>
         </div>
     );

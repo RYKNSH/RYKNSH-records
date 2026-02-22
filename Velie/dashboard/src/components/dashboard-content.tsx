@@ -147,6 +147,11 @@ export function DashboardContent({ stats, reviews, trust, health, reactions }: P
                                 <div>
                                     <p className="text-sm text-gray-300">{item.label}</p>
                                     <p className="text-xs text-gray-600">{item.status}</p>
+                                    {item.color === "bg-gray-500" && (
+                                        <Link href="/onboarding" className="text-[10px] text-purple-400 hover:text-purple-300 transition-colors">
+                                            {t("dashboard.getStarted")} →
+                                        </Link>
+                                    )}
                                 </div>
                             </div>
                         ))}
