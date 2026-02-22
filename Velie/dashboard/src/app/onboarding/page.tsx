@@ -2,36 +2,38 @@
 
 import { useState } from "react";
 import Link from "next/link";
-
-const steps = [
-    {
-        num: 1,
-        title: "GitHubと繋ぐ",
-        desc: "ボタン1つでVelieをリポジトリに接続。30秒で完了します。",
-        icon: "🔗",
-        action: "GitHub Appをインストール",
-        detail: "Velieは読み取り専用アクセスのみ。コードを書き換えることはありません。",
-    },
-    {
-        num: 2,
-        title: "Pull Requestを出す",
-        desc: "いつも通りコードを書いてPRを出すだけ。特別な操作は不要です。",
-        icon: "📝",
-        action: "PRを作成する",
-        detail: "Cursor、Copilot、v0、bolt.new — どんなツールで書いたコードでもOK。",
-    },
-    {
-        num: 3,
-        title: "安心して公開",
-        desc: "VelieがAIで自動チェック。安全スコア○△×で結果が一目でわかります。",
-        icon: "🛡️",
-        action: "ダッシュボードを見る",
-        detail: "問題が見つかったら「🔧 修正する」ボタン1つで自動修正。",
-    },
-];
+import { useLocale } from "@/components/locale-context";
 
 export default function OnboardingPage() {
+    const { t } = useLocale();
     const [currentStep, setCurrentStep] = useState(0);
+
+    const steps = [
+        {
+            num: 1,
+            title: t("onboarding.step1Title"),
+            desc: t("onboarding.step1Desc"),
+            icon: "🔗",
+            action: t("onboarding.step1Action"),
+            detail: t("onboarding.step1Detail"),
+        },
+        {
+            num: 2,
+            title: t("onboarding.step2Title"),
+            desc: t("onboarding.step2Desc"),
+            icon: "📝",
+            detail: t("onboarding.step2Detail"),
+        },
+        {
+            num: 3,
+            title: t("onboarding.step3Title"),
+            desc: t("onboarding.step3Desc"),
+            icon: "🛡️",
+            action: t("onboarding.step3Action"),
+            detail: t("onboarding.step3Detail"),
+        },
+    ];
+
     const step = steps[currentStep];
 
     return (
@@ -49,8 +51,8 @@ export default function OnboardingPage() {
                         <div key={s.num} className="flex items-center flex-1">
                             <div
                                 className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${i <= currentStep
-                                        ? "bg-purple-500 text-white"
-                                        : "bg-white/5 text-gray-600 border border-white/10"
+                                    ? "bg-purple-500 text-white"
+                                    : "bg-white/5 text-gray-600 border border-white/10"
                                     }`}
                             >
                                 {i < currentStep ? "✓" : s.num}
@@ -69,7 +71,7 @@ export default function OnboardingPage() {
                 <div className="glass p-8 text-center">
                     <span className="text-5xl block mb-4">{step.icon}</span>
                     <div className="text-xs text-purple-400 font-medium mb-2">
-                        ステップ {step.num} / 3
+                        {t("onboarding.stepOf")} {step.num} / 3
                     </div>
                     <h2 className="text-2xl font-bold text-white mb-3">{step.title}</h2>
                     <p className="text-gray-400 text-sm mb-6">{step.desc}</p>
@@ -87,7 +89,7 @@ export default function OnboardingPage() {
                                 className="bg-purple-500 hover:bg-purple-600 text-white py-3 rounded-xl text-sm font-medium transition-all hover:shadow-lg hover:shadow-purple-500/20 block"
                                 onClick={() => setTimeout(() => setCurrentStep(1), 1000)}
                             >
-                                {step.action} →
+                                {step.action}
                             </a>
                         )}
 
@@ -96,7 +98,7 @@ export default function OnboardingPage() {
                                 onClick={() => setCurrentStep(2)}
                                 className="bg-purple-500 hover:bg-purple-600 text-white py-3 rounded-xl text-sm font-medium transition-all hover:shadow-lg hover:shadow-purple-500/20 cursor-pointer"
                             >
-                                完了、次へ →
+                                {t("onboarding.next")}
                             </button>
                         )}
 
@@ -105,7 +107,7 @@ export default function OnboardingPage() {
                                 href="/dashboard"
                                 className="bg-purple-500 hover:bg-purple-600 text-white py-3 rounded-xl text-sm font-medium transition-all hover:shadow-lg hover:shadow-purple-500/20 block text-center"
                             >
-                                ダッシュボードへ →
+                                {step.action}
                             </Link>
                         )}
 
@@ -114,7 +116,7 @@ export default function OnboardingPage() {
                                 onClick={() => setCurrentStep(currentStep - 1)}
                                 className="text-gray-500 hover:text-gray-400 text-xs transition-colors cursor-pointer"
                             >
-                                ← 戻る
+                                {t("onboarding.back")}
                             </button>
                         )}
 
@@ -123,7 +125,7 @@ export default function OnboardingPage() {
                                 onClick={() => setCurrentStep(1)}
                                 className="text-gray-600 hover:text-gray-400 text-xs transition-colors cursor-pointer"
                             >
-                                すでにインストール済み →
+                                {t("onboarding.alreadyInstalled")}
                             </button>
                         )}
                     </div>
@@ -132,7 +134,7 @@ export default function OnboardingPage() {
                 {/* Skip */}
                 <div className="text-center mt-6">
                     <Link href="/dashboard" className="text-xs text-gray-600 hover:text-gray-400 transition-colors">
-                        スキップしてダッシュボードへ
+                        {t("onboarding.skip")}
                     </Link>
                 </div>
             </div>
