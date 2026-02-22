@@ -12,6 +12,7 @@ AdaNode (graph nodes) vs AdaTool (executor tools):
 from __future__ import annotations
 
 import logging
+import time
 from abc import ABC, abstractmethod
 from typing import Any
 
@@ -27,7 +28,7 @@ class AdaNode(ABC):
     inherit from this class. This provides:
     1. A consistent interface for all nodes
     2. An abstraction layer over LangGraph (future engine swap)
-    3. Built-in logging and error handling
+    3. Built-in observability (automatic execution timing)
 
     Example:
         class SentinelNode(AdaNode):
@@ -56,10 +57,39 @@ class AdaNode(ABC):
     def as_graph_node(self):
         """Return a callable suitable for LangGraph's add_node().
 
+        Wraps the process method with automatic timing/observability.
         This is the abstraction point — if we swap graph engines,
         only this method needs to change.
         """
-        return self.process
+        node = self
+
+        async def _wrapped(state: dict, config: RunnableConfig | None = None) -> dict:
+            start = time.perf_counter()
+            try:
+                result = await node.process(state, config)
+                elapsed_ms = (time.perf_counter() - start) * 1000
+                logger.debug(
+                    "Node [%s] completed in %.2fms", node.name, elapsed_ms,
+                )
+                # Append node timing to metrics list in state
+                metrics_entry = {
+                    "node_name": node.name,
+                    "execution_time_ms": round(elapsed_ms, 2),
+                    "success": True,
+                }
+                existing = list(state.get("node_metrics", []))
+                existing.append(metrics_entry)
+                result["node_metrics"] = existing
+                return result
+            except Exception as e:
+                elapsed_ms = (time.perf_counter() - start) * 1000
+                logger.error(
+                    "Node [%s] failed after %.2fms: %s", node.name, elapsed_ms, e,
+                )
+                raise
+
+        return _wrapped
 
     def __repr__(self) -> str:
         return f"<AdaNode:{self.name}>"
+

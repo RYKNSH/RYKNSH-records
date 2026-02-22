@@ -7,7 +7,7 @@ import type { NextRequest } from "next/server";
  * Protected routes: /dashboard, /reviews, /settings, /billing
  */
 
-const PUBLIC_PATHS = ["/", "/login", "/api"];
+const PUBLIC_PATHS = ["/", "/login", "/api", "/onboarding", "/docs"];
 
 export function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;

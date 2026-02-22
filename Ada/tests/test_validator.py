@@ -183,7 +183,7 @@ class TestGraphRetryLogic:
     def test_should_retry_passes_through(self):
         from agent.graph import _should_retry_after_validation
         state = {"validation_passed": True}
-        assert _should_retry_after_validation(state) == "log_usage"
+        assert _should_retry_after_validation(state) == "aggregator"
 
     def test_should_retry_on_failure(self):
         from agent.graph import _should_retry_after_validation
@@ -193,9 +193,9 @@ class TestGraphRetryLogic:
     def test_should_not_retry_after_max(self):
         from agent.graph import _should_retry_after_validation
         state = {"validation_passed": False, "retry_count": 1}
-        assert _should_retry_after_validation(state) == "log_usage"
+        assert _should_retry_after_validation(state) == "aggregator"
 
     def test_default_validation_passes(self):
         from agent.graph import _should_retry_after_validation
         state = {}
-        assert _should_retry_after_validation(state) == "log_usage"
+        assert _should_retry_after_validation(state) == "aggregator"

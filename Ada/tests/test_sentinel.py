@@ -38,15 +38,17 @@ class TestAdaNode:
         assert repr(node) == "<AdaNode:dummy>"
 
     def test_as_graph_node_returns_callable(self):
-        """as_graph_node() returns the process method."""
+        """as_graph_node() returns a callable wrapper with observability."""
         class DummyNode(AdaNode):
             name = "dummy"
             async def process(self, state, config=None):
                 return {}
 
         node = DummyNode()
-        assert callable(node.as_graph_node())
-        assert node.as_graph_node() == node.process
+        graph_fn = node.as_graph_node()
+        assert callable(graph_fn)
+        # Wrapper is NOT the raw process method (it adds observability)
+        assert graph_fn != node.process
 
 
 # ===========================================================================

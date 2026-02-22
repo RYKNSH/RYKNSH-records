@@ -62,6 +62,14 @@ class RouterState(TypedDict):
     validation_score: float
     retry_count: int
 
+    # Aggregator
+    aggregated_content: str
+    aggregation_method: str
+    parallel_results: list[dict[str, Any]]
+
+    # Observability
+    node_metrics: list[dict[str, Any]]
+
     # Output
     response_content: str
     response_model: str
@@ -359,13 +367,13 @@ def _should_proceed_after_sentinel(state: RouterState) -> str:
 
 
 def _should_retry_after_validation(state: RouterState) -> str:
-    """Conditional edge: retry invoke_llm or proceed to log_usage."""
+    """Conditional edge: retry invoke_llm or proceed to aggregator."""
     if state.get("validation_passed", True):
-        return "log_usage"
+        return "aggregator"
     retry_count = state.get("retry_count", 0)
     if retry_count < 1:
         return "invoke_llm"
-    return "log_usage"  # Max retries reached, proceed anyway
+    return "aggregator"  # Max retries reached, proceed anyway
 
 
 # ---------------------------------------------------------------------------
@@ -378,7 +386,7 @@ def build_router_graph(
 ) -> StateGraph:
     """Build the LLM router graph.
 
-    Pipeline: sentinel → context_loader → strategist → invoke_llm → validator → log_usage → END
+    Pipeline: sentinel → context_loader → strategist → invoke_llm → validator → aggregator → log_usage → END
     Validator retry: validation_failed + retry<1 → invoke_llm (re-run)
     Sentinel block: sentinel → sentinel_blocked → END
 
@@ -390,6 +398,7 @@ def build_router_graph(
     from agent.nodes.context_loader import context_loader_node
     from agent.nodes.strategist import strategist_node
     from agent.nodes.validator import validator_node
+    from agent.nodes.aggregator import aggregator_node
 
     graph = StateGraph(RouterState)
 
@@ -408,6 +417,9 @@ def build_router_graph(
 
     # Validation
     graph.add_node("validator", validator_node.as_graph_node())
+
+    # Aggregation (fan-in)
+    graph.add_node("aggregator", aggregator_node.as_graph_node())
 
     # Logging
     graph.add_node("log_usage", log_usage)
@@ -440,13 +452,15 @@ def build_router_graph(
         # Simple linear flow
         graph.add_edge("invoke_llm", "validator")
 
-    # Validator → retry or log_usage
+    # Validator → retry or aggregator
     graph.add_conditional_edges(
         "validator",
         _should_retry_after_validation,
-        {"invoke_llm": "invoke_llm", "log_usage": "log_usage"},
+        {"invoke_llm": "invoke_llm", "aggregator": "aggregator"},
     )
 
+    # Aggregator → log_usage → END
+    graph.add_edge("aggregator", "log_usage")
     graph.add_edge("log_usage", END)
 
     compile_kwargs = {}
