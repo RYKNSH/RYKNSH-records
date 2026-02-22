@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { LocaleSwitcher } from "@/components/locale-switcher";
 
 const navItems = [
     { href: "/dashboard", label: "Overview", icon: "📊" },
@@ -54,6 +55,11 @@ export function Sidebar() {
                     );
                 })}
             </nav>
+
+            {/* Language Switcher */}
+            <div className="px-4 pb-2">
+                <LocaleSwitcher />
+            </div>
 
             {/* Footer — TODO: dynamic from auth */}
             <div className="p-4 border-t border-white/5">

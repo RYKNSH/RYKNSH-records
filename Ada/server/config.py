@@ -23,6 +23,15 @@ class Settings(BaseSettings):
     # Ada API Authentication
     ada_api_key: str = "ada-dev-key"
 
+    # Stripe (Optional — free tier if not set)
+    stripe_secret_key: str = ""
+    stripe_webhook_secret: str = ""
+    stripe_price_id_pro: str = ""
+    stripe_price_id_enterprise: str = ""
+
+    # App
+    app_url: str = "http://localhost:8000"
+
     # Server
     port: int = 8000
     log_level: str = "info"
