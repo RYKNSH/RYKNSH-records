@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ada — AI Node Platform | RYKNSH records</title>
+    <meta name="description" content="AIノードを組み合わせて、世界最高の専門AIをあなたのプロダクトに。コードレビュー、グロース分析、クリエイティブ制作を1つのAPIで。">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0a0f;
+            --surface: #12121a;
+            --surface-2: #1a1a26;
+            --border: #2a2a3a;
+            --text: #e8e8f0;
+            --text-dim: #8888a0;
+            --accent: #6366f1;
+            --accent-glow: #818cf8;
+            --green: #34d399;
+            --amber: #fbbf24;
+            --rose: #f43f5e;
+            --font: 'Space Grotesk', sans-serif;
+            --mono: 'JetBrains Mono', monospace;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* --- NAV --- */
+        nav {
+            position: fixed; top: 0; width: 100%; z-index: 100;
+            background: rgba(10,10,15,0.85);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .logo { font-weight: 700; font-size: 1.3rem; letter-spacing: -0.02em; }
+        .logo span { color: var(--accent); }
+        nav a { color: var(--text-dim); text-decoration: none; margin-left: 2rem; font-size: 0.9rem; transition: color 0.2s; }
+        nav a:hover { color: var(--text); }
+        .nav-cta {
+            background: var(--accent); color: white !important; padding: 0.5rem 1.2rem;
+            border-radius: 8px; font-weight: 600; transition: all 0.3s;
+        }
+        .nav-cta:hover { background: var(--accent-glow); transform: translateY(-1px); }
+
+        /* --- HERO --- */
+        .hero {
+            min-height: 100vh; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; text-align: center;
+            padding: 8rem 2rem 4rem;
+            position: relative;
+        }
+        .hero::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(ellipse at 50% 30%, rgba(99,102,241,0.12) 0%, transparent 60%),
+                        radial-gradient(ellipse at 80% 60%, rgba(52,211,153,0.06) 0%, transparent 40%);
+            pointer-events: none;
+        }
+        .hero-badge {
+            background: var(--surface-2); border: 1px solid var(--border);
+            padding: 0.4rem 1rem; border-radius: 20px; font-size: 0.8rem;
+            color: var(--accent-glow); margin-bottom: 2rem;
+            animation: fadeIn 0.8s ease;
+        }
+        .hero h1 {
+            font-size: clamp(2.5rem, 6vw, 4.5rem); font-weight: 700;
+            letter-spacing: -0.04em; line-height: 1.1; max-width: 800px;
+            animation: slideUp 0.8s ease 0.1s both;
+        }
+        .hero h1 .gradient {
+            background: linear-gradient(135deg, var(--accent) 0%, var(--green) 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .hero p {
+            font-size: 1.2rem; color: var(--text-dim); max-width: 600px;
+            margin: 1.5rem auto 2.5rem;
+            animation: slideUp 0.8s ease 0.2s both;
+        }
+        .hero-buttons {
+            display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center;
+            animation: slideUp 0.8s ease 0.3s both;
+        }
+        .btn-primary {
+            background: var(--accent); color: white; padding: 0.9rem 2.2rem;
+            border-radius: 10px; font-weight: 600; font-size: 1rem;
+            text-decoration: none; transition: all 0.3s; border: none; cursor: pointer;
+        }
+        .btn-primary:hover { background: var(--accent-glow); transform: translateY(-2px); box-shadow: 0 8px 30px rgba(99,102,241,0.3); }
+        .btn-secondary {
+            background: transparent; color: var(--text); padding: 0.9rem 2.2rem;
+            border-radius: 10px; font-weight: 500; font-size: 1rem;
+            text-decoration: none; border: 1px solid var(--border); transition: all 0.3s;
+        }
+        .btn-secondary:hover { border-color: var(--accent); }
+
+        /* --- CODE PREVIEW --- */
+        .code-preview {
+            margin-top: 4rem; max-width: 600px; width: 100%;
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 12px; overflow: hidden; text-align: left;
+            animation: slideUp 0.8s ease 0.4s both;
+        }
+        .code-header {
+            display: flex; align-items: center; gap: 0.5rem;
+            padding: 0.8rem 1rem; border-bottom: 1px solid var(--border);
+        }
+        .code-dot { width: 10px; height: 10px; border-radius: 50%; }
+        .code-dot:nth-child(1) { background: var(--rose); }
+        .code-dot:nth-child(2) { background: var(--amber); }
+        .code-dot:nth-child(3) { background: var(--green); }
+        .code-body { padding: 1.2rem; font-family: var(--mono); font-size: 0.85rem; line-height: 1.8; }
+        .code-body .kw { color: var(--accent-glow); }
+        .code-body .fn { color: var(--green); }
+        .code-body .str { color: var(--amber); }
+        .code-body .cm { color: var(--text-dim); }
+
+        /* --- SECTIONS --- */
+        section { padding: 6rem 2rem; max-width: 1200px; margin: 0 auto; }
+        section h2 { font-size: 2.2rem; font-weight: 700; letter-spacing: -0.03em; margin-bottom: 1rem; }
+        section .subtitle { color: var(--text-dim); font-size: 1.1rem; margin-bottom: 3rem; max-width: 600px; }
+
+        /* --- NODE SETS --- */
+        .nodes-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; }
+        .node-card {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 16px; padding: 2rem; transition: all 0.3s;
+            position: relative; overflow: hidden;
+        }
+        .node-card:hover { border-color: var(--accent); transform: translateY(-4px); }
+        .node-card::after {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+        }
+        .node-card:nth-child(1)::after { background: linear-gradient(90deg, var(--accent), var(--accent-glow)); }
+        .node-card:nth-child(2)::after { background: linear-gradient(90deg, var(--green), #6ee7b7); }
+        .node-card:nth-child(3)::after { background: linear-gradient(90deg, var(--amber), #fcd34d); }
+        .node-icon { font-size: 2.5rem; margin-bottom: 1rem; }
+        .node-card h3 { font-size: 1.3rem; margin-bottom: 0.5rem; }
+        .node-card p { color: var(--text-dim); font-size: 0.95rem; }
+        .node-tag {
+            display: inline-block; background: var(--surface-2); border: 1px solid var(--border);
+            padding: 0.2rem 0.6rem; border-radius: 6px; font-size: 0.75rem;
+            color: var(--text-dim); margin-top: 1rem; margin-right: 0.3rem;
+        }
+
+        /* --- HOW IT WORKS --- */
+        .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; }
+        .step { text-align: center; }
+        .step-num {
+            width: 48px; height: 48px; border-radius: 12px;
+            background: var(--surface-2); border: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; color: var(--accent); font-size: 1.2rem;
+            margin: 0 auto 1rem;
+        }
+        .step h3 { font-size: 1.1rem; margin-bottom: 0.5rem; }
+        .step p { color: var(--text-dim); font-size: 0.9rem; }
+
+        /* --- PRICING --- */
+        .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; }
+        .price-card {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 16px; padding: 2rem; transition: all 0.3s;
+        }
+        .price-card.featured { border-color: var(--accent); position: relative; }
+        .price-card.featured::before {
+            content: 'POPULAR'; position: absolute; top: -10px; right: 20px;
+            background: var(--accent); color: white; padding: 0.2rem 0.8rem;
+            border-radius: 6px; font-size: 0.7rem; font-weight: 700;
+        }
+        .price-card h3 { font-size: 1.3rem; margin-bottom: 0.5rem; }
+        .price { font-size: 2.5rem; font-weight: 700; margin: 1rem 0; }
+        .price span { font-size: 1rem; color: var(--text-dim); font-weight: 400; }
+        .price-features { list-style: none; margin: 1.5rem 0; }
+        .price-features li { padding: 0.4rem 0; color: var(--text-dim); font-size: 0.9rem; }
+        .price-features li::before { content: '✓ '; color: var(--green); }
+        .price-card .btn-primary { width: 100%; text-align: center; display: block; }
+
+        /* --- FOOTER --- */
+        footer {
+            border-top: 1px solid var(--border); padding: 3rem 2rem;
+            text-align: center; color: var(--text-dim); font-size: 0.85rem;
+        }
+
+        /* --- ANIMATIONS --- */
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        @media (max-width: 768px) {
+            .steps { grid-template-columns: 1fr; }
+            nav a:not(.nav-cta) { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+<nav>
+    <div class="logo"><span>Ada</span> by RYKNSH</div>
+    <div>
+        <a href="#nodes">Node Sets</a>
+        <a href="#how">How It Works</a>
+        <a href="#pricing">Pricing</a>
+        <a href="https://ada-core-api-production.up.railway.app/docs" target="_blank">API Docs</a>
+        <a href="#pricing" class="nav-cta">Get Started</a>
+    </div>
+</nav>
+
+<div class="hero">
+    <div class="hero-badge">🚀 Now in Public Beta</div>
+    <h1>AIノードを組み合わせる。<br><span class="gradient">世界最高の専門AI</span>を、<br>あなたのプロダクトに。</h1>
+    <p>コードレビュー、グロース分析、クリエイティブ制作。検証済みのAIノードセットを1つのAPIで統合。</p>
+    <div class="hero-buttons">
+        <a href="#pricing" class="btn-primary">無料で始める →</a>
+        <a href="https://ada-core-api-production.up.railway.app/docs" class="btn-secondary" target="_blank">APIドキュメント</a>
+    </div>
+
+    <div class="code-preview">
+        <div class="code-header">
+            <div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div>
+            <span style="color:var(--text-dim); font-size:0.8rem; margin-left:0.5rem;">ada_example.py</span>
+        </div>
+        <div class="code-body">
+            <span class="kw">from</span> ada_sdk <span class="kw">import</span> <span class="fn">Ada</span><br><br>
+            client = <span class="fn">Ada</span>(api_key=<span class="str">"ada_live_xxx"</span>)<br><br>
+            <span class="cm"># 世界最高のコードレビュー</span><br>
+            review = client.<span class="fn">chat</span>(<br>
+            &nbsp;&nbsp;<span class="str">"Review this PR diff"</span>,<br>
+            &nbsp;&nbsp;node_set=<span class="str">"code_reviewer"</span><br>
+            )<br><br>
+            <span class="fn">print</span>(review.content)
+        </div>
+    </div>
+</div>
+
+<section id="nodes">
+    <h2>Node Sets</h2>
+    <p class="subtitle">検証済みの専門AIを、プラグイン感覚で。</p>
+    <div class="nodes-grid">
+        <div class="node-card">
+            <div class="node-icon">🔍</div>
+            <h3>World-Class Code Reviewer</h3>
+            <p>バグ検出、セキュリティ脆弱性、パフォーマンスボトルネック。OWASP準拠のセキュリティスキャン付き。</p>
+            <span class="node-tag">sentinel</span>
+            <span class="node-tag">github_diff</span>
+            <span class="node-tag">test_runner</span>
+            <span class="node-tag">linter</span>
+        </div>
+        <div class="node-card">
+            <div class="node-icon">📈</div>
+            <h3>Growth Hacker</h3>
+            <p>データドリブンのグロース分析。A/Bテスト設計、ファネル最適化、ユーザーリテンション分析。</p>
+            <span class="node-tag">analytics</span>
+            <span class="node-tag">ab_test</span>
+            <span class="node-tag">funnel</span>
+        </div>
+        <div class="node-card">
+            <div class="node-icon">🎨</div>
+            <h3>Creative Director</h3>
+            <p>ブランド一貫性のあるクリエイティブ制作。コピーライティング、画像生成、ブランドチェック。</p>
+            <span class="node-tag">image_gen</span>
+            <span class="node-tag">brand_check</span>
+            <span class="node-tag">copywriting</span>
+        </div>
+    </div>
+</section>
+
+<section id="how">
+    <h2>How It Works</h2>
+    <p class="subtitle">3ステップで統合完了。</p>
+    <div class="steps">
+        <div class="step">
+            <div class="step-num">1</div>
+            <h3>サインアップ</h3>
+            <p>メールアドレスだけで即座にAPIキーを取得。無料プランで100リクエスト/月。</p>
+        </div>
+        <div class="step">
+            <div class="step-num">2</div>
+            <h3>ノードセットを選択</h3>
+            <p>Code Reviewer、Growth Hacker、Creative Directorから用途に合ったセットを選択。</p>
+        </div>
+        <div class="step">
+            <div class="step-num">3</div>
+            <h3>APIを呼び出す</h3>
+            <p>OpenAI互換のAPIをそのまま使える。既存のコードベースに数行で統合。</p>
+        </div>
+    </div>
+</section>
+
+<section id="pricing">
+    <h2>Pricing</h2>
+    <p class="subtitle">シンプルな従量課金。隠れたコストなし。</p>
+    <div class="pricing-grid">
+        <div class="price-card">
+            <h3>Free</h3>
+            <div class="price">$0<span>/月</span></div>
+            <ul class="price-features">
+                <li>100リクエスト/月</li>
+                <li>全ノードセット利用可</li>
+                <li>OpenAI互換API</li>
+                <li>コミュニティサポート</li>
+            </ul>
+            <a href="#" class="btn-primary" style="background: var(--surface-2); border: 1px solid var(--border);">無料で始める</a>
+        </div>
+        <div class="price-card featured">
+            <h3>Pro</h3>
+            <div class="price">$49<span>/月</span></div>
+            <ul class="price-features">
+                <li>10,000リクエスト/月</li>
+                <li>超過: $0.005/リクエスト</li>
+                <li>ストリーミングレスポンス</li>
+                <li>優先サポート</li>
+                <li>Usageダッシュボード</li>
+            </ul>
+            <a href="#" class="btn-primary">Proを始める →</a>
+        </div>
+        <div class="price-card">
+            <h3>Enterprise</h3>
+            <div class="price">$299<span>/月</span></div>
+            <ul class="price-features">
+                <li>100,000リクエスト/月</li>
+                <li>超過: $0.003/リクエスト</li>
+                <li>カスタムノードセット</li>
+                <li>SLA 99.9%</li>
+                <li>専任サポート</li>
+            </ul>
+            <a href="#" class="btn-primary" style="background: var(--surface-2); border: 1px solid var(--border);">お問い合わせ</a>
+        </div>
+    </div>
+</section>
+
+<footer>
+    <p>© 2026 RYKNSH records — Ada Core API</p>
+    <p style="margin-top:0.5rem;">
+        <a href="https://ada-core-api-production.up.railway.app/docs" style="color:var(--accent);text-decoration:none;" target="_blank">API Docs</a>
+        &nbsp;·&nbsp;
+        <a href="https://ada-core-api-production.up.railway.app/health" style="color:var(--accent);text-decoration:none;" target="_blank">Status</a>
+    </p>
+</footer>
+
+</body>
+</html>

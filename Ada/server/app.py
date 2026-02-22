@@ -68,6 +68,15 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Static files (LP)
+import pathlib
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+
+_static_dir = pathlib.Path(__file__).parent.parent / "static"
+if _static_dir.exists():
+    app.mount("/static", StaticFiles(directory=str(_static_dir)), name="static")
+
 
 # ---------------------------------------------------------------------------
 # Auth Dependency
@@ -375,3 +384,73 @@ async def route_model(
         reason = f"Fallback to tenant default ({tenant.default_model})"
 
     return RouteResponse(recommended_model=recommended, reason=reason)
+
+
+# ---------------------------------------------------------------------------
+# Landing Page
+# ---------------------------------------------------------------------------
+
+@app.get("/", include_in_schema=False)
+async def landing_page():
+    """Serve the landing page."""
+    lp = _static_dir / "index.html"
+    if lp.exists():
+        return FileResponse(str(lp))
+    return {"message": "Ada Core API", "docs": "/docs"}
+
+
+# ---------------------------------------------------------------------------
+# Platform API (Signup, Dashboard, Webhook)
+# ---------------------------------------------------------------------------
+
+@app.post("/v1/auth/signup")
+async def auth_signup(request_body: dict):
+    """New tenant signup."""
+    from server.onboarding import signup, SignupRequest
+    req = SignupRequest(**request_body)
+    return await signup(req)
+
+
+@app.get("/v1/dashboard/usage")
+async def dashboard_usage(tenant: TenantConfig = Depends(verify_api_key)):
+    """Get usage stats."""
+    from server.dashboard import get_usage
+    return await get_usage(tenant.tenant_id)
+
+
+@app.get("/v1/dashboard/keys")
+async def dashboard_keys(tenant: TenantConfig = Depends(verify_api_key)):
+    """List API keys."""
+    from server.dashboard import list_keys
+    return await list_keys(tenant.tenant_id)
+
+
+@app.post("/v1/dashboard/keys")
+async def dashboard_create_key(request_body: dict, tenant: TenantConfig = Depends(verify_api_key)):
+    """Create a new API key."""
+    from server.dashboard import create_key, KeyCreateRequest
+    req = KeyCreateRequest(**request_body)
+    return await create_key(tenant.tenant_id, req)
+
+
+@app.get("/v1/dashboard/billing")
+async def dashboard_billing(tenant: TenantConfig = Depends(verify_api_key)):
+    """Get billing info."""
+    from server.dashboard import get_billing
+    return await get_billing(tenant.tenant_id)
+
+
+@app.get("/v1/catalog")
+async def catalog():
+    """Get node set catalog (public)."""
+    from server.dashboard import get_catalog_api
+    return await get_catalog_api()
+
+
+@app.post("/v1/stripe/webhook")
+async def stripe_webhook(request: Request):
+    """Handle Stripe webhook events."""
+    from server.stripe_billing import stripe_billing
+    payload = await request.body()
+    sig = request.headers.get("stripe-signature", "")
+    return await stripe_billing.handle_webhook(payload, sig)
