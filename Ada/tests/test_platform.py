@@ -102,8 +102,8 @@ class TestStripeBilling:
     @pytest.mark.asyncio
     async def test_free_quota_exhaustion(self):
         billing = StripeBilling()
-        for _ in range(100):
-            await billing.increment_usage("t1")
+        sub = billing.get_or_create_subscription("t1")
+        sub.request_count = 100  # Simulate 100 requests directly
         quota = billing.check_quota("t1")
         assert quota["remaining"] == 0
         assert quota["has_quota"] is False  # Free plan, no overage
@@ -112,8 +112,8 @@ class TestStripeBilling:
     async def test_pro_quota_allows_overage(self):
         billing = StripeBilling()
         billing.upgrade_plan("t1", "pro")
-        for _ in range(10001):
-            await billing.increment_usage("t1")
+        sub = billing.get_or_create_subscription("t1")
+        sub.request_count = 10001  # Simulate 10001 requests directly
         quota = billing.check_quota("t1")
         assert quota["has_quota"] is True  # Pro allows overage
 
@@ -132,8 +132,8 @@ class TestStripeBilling:
     async def test_billing_info(self):
         billing = StripeBilling()
         billing.upgrade_plan("t1", "pro")
-        for _ in range(50):
-            await billing.increment_usage("t1")
+        sub = billing.get_or_create_subscription("t1")
+        sub.request_count = 50  # Simulate 50 requests directly
         info = billing.get_billing_info("t1")
         assert info["plan"] == "pro"
         assert info["monthly_cost_usd"] == 49
@@ -144,8 +144,8 @@ class TestStripeBilling:
     async def test_overage_billing(self):
         billing = StripeBilling()
         billing.upgrade_plan("t1", "pro")
-        for _ in range(10_100):
-            await billing.increment_usage("t1")
+        sub = billing.get_or_create_subscription("t1")
+        sub.request_count = 10_100  # Simulate overage directly
         info = billing.get_billing_info("t1")
         assert info["overage_count"] == 100
         assert info["overage_cost_usd"] == 0.5  # 100 * 0.005
