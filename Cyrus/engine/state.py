@@ -30,6 +30,12 @@ class CyrusState(TypedDict, total=False):
     defer_reason: str
     inbound_magnets: list[dict[str, Any]]
     inbound_schedule: dict[str, Any]
+    content_plan: list[dict[str, Any]]
+    content_calendar: dict[str, Any]
+    campaign: dict[str, Any]
+    viral_strategies: list[dict[str, Any]]
+    trend_signals: list[dict[str, Any]]
+    ad_plan: dict[str, Any]
     generated_content: list[dict[str, Any]]
     qualified_leads: list[dict[str, Any]]
 

@@ -1,12 +1,13 @@
 """Cyrus LangGraph — Full pipeline graph definition.
 
-Sprint 1: Intelligence Layer only
-Sprint 2: + Trust Engine + Outbound + Inbound
+Sprint 1: Intelligence Layer (3 nodes)
+Sprint 2: + Trust Engine + Outbound + Inbound (3 nodes)
+Sprint 3: + Content + Campaign + Viral + Ads (4 nodes)
 
-Pipeline:
+Full Pipeline (10 nodes):
   market_scanner → icp_profiler → signal_detector
-    → trust_engine → outbound_personalizer
-                   → inbound_magnet
+    → trust_engine → outbound_personalizer → inbound_magnet
+    → content_architect → viral_engineer → campaign_orchestrator → ad_optimizer
     → END
 """
 
@@ -23,6 +24,10 @@ from nodes.intelligence.signal_detector import signal_detector
 from nodes.conversion.trust_engine import trust_engine
 from nodes.acquisition.outbound_personalizer import outbound_personalizer
 from nodes.acquisition.inbound_magnet import inbound_magnet
+from nodes.acquisition.content_architect import content_architect
+from nodes.acquisition.campaign_orchestrator import campaign_orchestrator
+from nodes.acquisition.viral_engineer import viral_engineer
+from nodes.acquisition.ad_optimizer import ad_optimizer
 
 logger = logging.getLogger(__name__)
 
@@ -46,36 +51,43 @@ def build_intelligence_graph() -> StateGraph:
 
 
 def build_growth_graph() -> StateGraph:
-    """Build the full growth pipeline graph (Sprint 2+).
+    """Build the full growth pipeline graph (Sprint 3).
 
-    Pipeline:
-      market_scanner → icp_profiler → signal_detector
-        → trust_engine → outbound_personalizer → inbound_magnet → END
+    10-node sequential pipeline:
+    Intelligence → Trust → Outbound → Inbound → Content → Viral → Campaign → Ads → END
     """
     graph = StateGraph(CyrusState)
 
-    # Intelligence Layer
+    # Intelligence Layer (Sprint 1)
     graph.add_node("market_scanner", market_scanner)
     graph.add_node("icp_profiler", icp_profiler)
     graph.add_node("signal_detector", signal_detector)
 
-    # Trust Engine (Conversion cross-layer)
+    # Trust Engine (Sprint 2)
     graph.add_node("trust_engine", trust_engine)
 
-    # Acquisition Layer
+    # Acquisition Layer (Sprint 2)
     graph.add_node("outbound_personalizer", outbound_personalizer)
     graph.add_node("inbound_magnet", inbound_magnet)
 
-    # Intelligence pipeline
+    # Content & Campaign (Sprint 3)
+    graph.add_node("content_architect", content_architect)
+    graph.add_node("viral_engineer", viral_engineer)
+    graph.add_node("campaign_orchestrator", campaign_orchestrator)
+    graph.add_node("ad_optimizer", ad_optimizer)
+
+    # Sequential pipeline
     graph.set_entry_point("market_scanner")
     graph.add_edge("market_scanner", "icp_profiler")
     graph.add_edge("icp_profiler", "signal_detector")
-
-    # Intelligence → Trust Engine → Acquisition (sequential)
     graph.add_edge("signal_detector", "trust_engine")
     graph.add_edge("trust_engine", "outbound_personalizer")
     graph.add_edge("outbound_personalizer", "inbound_magnet")
-    graph.add_edge("inbound_magnet", END)
+    graph.add_edge("inbound_magnet", "content_architect")
+    graph.add_edge("content_architect", "viral_engineer")
+    graph.add_edge("viral_engineer", "campaign_orchestrator")
+    graph.add_edge("campaign_orchestrator", "ad_optimizer")
+    graph.add_edge("ad_optimizer", END)
 
     return graph
 
@@ -99,7 +111,7 @@ async def run_intelligence(blueprint: dict) -> CyrusState:
 
 
 async def run_growth(blueprint: dict) -> CyrusState:
-    """Execute the full growth pipeline (Intelligence + Trust + Acquisition)."""
+    """Execute the full growth pipeline (10 nodes)."""
     initial_state: CyrusState = {
         "blueprint": blueprint,
         "tenant_id": blueprint.get("tenant_id", ""),
