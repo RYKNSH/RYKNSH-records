@@ -42,8 +42,8 @@ RYKNSHホールディングスを構成する7つのAI子会社（LangGraphモ�
 |:---|:---|:---|:---|:---|
 | **0** | **RYKNSH records** | 本社・Orchestrator（全体指揮） | (なし) | `Planning` |
 | **1** | **Velie** (ヴェリー) | 品質保証 (QA)・コード検証 | Velie CI | `Sprint 1 Core Done` |
-| **2** | **Lumina** (ルミナ) | AI 制作プロダクション (画像/動画) | Lumina Studio | `Not Started` |
-| **3** | **Cyrus** (サイラス) | グロース・マーケティング・自動営業 | Cyrus Growth | `Not Started` |
+| **2** | **Lumina** (ルミナ) | AI 制作プロダクション (画像/動画) | Lumina Studio | `Whitepaper v2 Done` |
+| **3** | **Cyrus** (サイラス) | グロース・マーケティング・自動営業 | Cyrus Growth | `Whitepaper v2 Done` |
 | **4** | **Iris** (アイリス) | 広報・炎上リスク管理・ブランド防衛 | Iris PR | `Not Started` |
 | **5** | **Ada** (エイダ) | AI R&D・全エージェントの中枢基盤 | Ada Core API | `Sprint 1 Core Done` |
 | **6** | **Noah** (ノア) | ファンの熱狂を観測・集約する基盤 | Noah Platform | `Not Started` |
