@@ -6,19 +6,10 @@ import { Suspense } from "react";
 
 function LoginForm() {
     const searchParams = useSearchParams();
-    const redirect = searchParams.get("redirect") || "/dashboard";
 
-    async function handleGitHubLogin() {
-        // Demo mode: create session and redirect to dashboard
-        const res = await fetch("/api/auth/github", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ code: "demo" }),
-        });
-        const data = await res.json();
-        if (data.success) {
-            window.location.href = redirect;
-        }
+    function handleGitHubLogin() {
+        // Redirect to GitHub OAuth (or demo mode) via API
+        window.location.href = "/api/auth/github";
     }
 
     return (
