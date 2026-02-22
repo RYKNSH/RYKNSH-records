@@ -653,7 +653,7 @@
                     </div>
                     <div class="chat-input-area">
                         <textarea class="chat-input" id="chat-input" placeholder="Message Ada..." rows="1"
-                            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage();}"></textarea>
+                            onkeydown="if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing){event.preventDefault();sendMessage();}"></textarea>
                         <button class="chat-send" id="chat-send" onclick="sendMessage()">➤</button>
                     </div>
                 </div>
