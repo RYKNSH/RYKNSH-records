@@ -440,14 +440,14 @@ async def auth_signup(request_body: dict):
 async def dashboard_usage(tenant: TenantConfig = Depends(verify_api_key)):
     """Get usage stats."""
     from server.dashboard import get_usage
-    return await get_usage(tenant.tenant_id)
+    return await get_usage(str(tenant.tenant_id))
 
 
 @app.get("/v1/dashboard/keys")
 async def dashboard_keys(tenant: TenantConfig = Depends(verify_api_key)):
     """List API keys."""
     from server.dashboard import list_keys
-    return await list_keys(tenant.tenant_id)
+    return await list_keys(str(tenant.tenant_id))
 
 
 @app.post("/v1/dashboard/keys")
@@ -455,14 +455,14 @@ async def dashboard_create_key(request_body: dict, tenant: TenantConfig = Depend
     """Create a new API key."""
     from server.dashboard import create_key, KeyCreateRequest
     req = KeyCreateRequest(**request_body)
-    return await create_key(tenant.tenant_id, req)
+    return await create_key(str(tenant.tenant_id), req)
 
 
 @app.get("/v1/dashboard/billing")
 async def dashboard_billing(tenant: TenantConfig = Depends(verify_api_key)):
     """Get billing info."""
     from server.dashboard import get_billing
-    return await get_billing(tenant.tenant_id)
+    return await get_billing(str(tenant.tenant_id))
 
 
 @app.get("/v1/catalog")

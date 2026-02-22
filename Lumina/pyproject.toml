@@ -1,0 +1,15 @@
+[project]
+name = "lumina"
+version = "0.1.0"
+description = "AI Creative Production - 世界最高峰のクリエイティブを全自動で"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
