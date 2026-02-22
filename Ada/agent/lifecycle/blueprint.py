@@ -140,21 +140,21 @@ class AgentBlueprint(BaseModel):
         """Deserialize from Supabase row."""
         weights = row.get("priority_weights", {})
         return cls(
-            id=row.get("id", ""),
-            tenant_id=row.get("tenant_id", ""),
-            version=row.get("version", 1),
-            name=row.get("name", "default"),
-            persona=row.get("persona", ""),
-            system_prompt=row.get("system_prompt", ""),
+            id=row.get("id") or "",
+            tenant_id=row.get("tenant_id") or "",
+            version=row.get("version") or 1,
+            name=row.get("name") or "default",
+            persona=row.get("persona") or "",
+            system_prompt=row.get("system_prompt") or "",
             priority_weights=PriorityWeights(**weights) if weights else PriorityWeights(),
-            allowed_models=row.get("allowed_models", []),
-            default_model=row.get("default_model", "claude-sonnet-4-20250514"),
-            temperature=row.get("temperature", 0.7),
-            tools=row.get("tools", []),
-            quality_tier=row.get("quality_tier", "standard"),
+            allowed_models=row.get("allowed_models") or [],
+            default_model=row.get("default_model") or "claude-sonnet-4-20250514",
+            temperature=row.get("temperature") or 0.7,
+            tools=row.get("tools") or [],
+            quality_tier=row.get("quality_tier") or "standard",
             rag_enabled=row.get("rag_enabled", True),
-            max_retries=row.get("max_retries", 1),
-            metadata=row.get("metadata", {}),
+            max_retries=row.get("max_retries") or 1,
+            metadata=row.get("metadata") or {},
         )
 
     @classmethod
