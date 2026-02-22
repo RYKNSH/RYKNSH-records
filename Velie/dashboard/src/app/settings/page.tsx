@@ -2,6 +2,7 @@
 
 import { Sidebar } from "@/components/sidebar";
 import { useEffect, useState } from "react";
+import { useLocale } from "@/components/locale-context";
 
 type SettingField =
     | { label: string; key: string; value: string; type: "select"; options: string[] }
@@ -10,6 +11,7 @@ type SettingField =
     | { label: string; key: string; value: string; type: "readonly" };
 
 export default function SettingsPage() {
+    const { t } = useLocale();
     const [settings, setSettings] = useState<Record<string, unknown>>({});
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState<string | null>(null);
@@ -36,40 +38,40 @@ export default function SettingsPage() {
             });
             const data = await res.json();
             if (data.success) {
-                setMessage("✅ 設定を保存しました");
+                setMessage(t("settings.saved"));
             } else {
-                setMessage("❌ 保存に失敗しました");
+                setMessage(t("settings.saveFailed"));
             }
         } catch {
-            setMessage("❌ エラーが発生しました");
+            setMessage(t("settings.saveError"));
         }
         setSaving(false);
     }
 
     const sections: { title: string; icon: string; fields: SettingField[] }[] = [
         {
-            title: "レビュー設定",
+            title: t("settings.reviewConfig"),
             icon: "🔍",
             fields: [
-                { label: "AIモデル", key: "llm_model", value: (settings.llm_model as string) || "claude-sonnet-4-20250514", type: "select", options: ["claude-sonnet-4-20250514", "claude-3-5-haiku-20241022"] },
-                { label: "レビュー言語", key: "review_language", value: (settings.review_language as string) || "Japanese", type: "select", options: ["Japanese", "English", "Auto-detect"] },
-                { label: "最大diffサイズ", key: "max_diff_size", value: (settings.max_diff_size as string) || "60,000 chars", type: "text" },
+                { label: t("settings.aiModel"), key: "llm_model", value: (settings.llm_model as string) || "claude-sonnet-4-20250514", type: "select", options: ["claude-sonnet-4-20250514", "claude-3-5-haiku-20241022"] },
+                { label: t("settings.reviewLanguage"), key: "review_language", value: (settings.review_language as string) || "Japanese", type: "select", options: ["Japanese", "English", "Chinese", "Auto-detect"] },
+                { label: t("settings.maxDiffSize"), key: "max_diff_size", value: (settings.max_diff_size as string) || "60,000 chars", type: "text" },
             ],
         },
         {
-            title: "自動修正",
+            title: t("settings.autoFix"),
             icon: "🔧",
             fields: [
-                { label: "自動修正トリガー", key: "auto_fix_threshold", value: (settings.auto_fix_threshold as string) || "off", type: "select", options: ["off", "critical", "warning"] },
-                { label: "修正提案を自動生成", key: "auto_suggest", value: (settings.auto_suggest as boolean) ?? true, type: "toggle" },
+                { label: t("settings.autoFixTrigger"), key: "auto_fix_threshold", value: (settings.auto_fix_threshold as string) || "off", type: "select", options: ["off", "critical", "warning"] },
+                { label: t("settings.autoSuggest"), key: "auto_suggest", value: (settings.auto_suggest as boolean) ?? true, type: "toggle" },
             ],
         },
         {
-            title: "通知",
+            title: t("settings.notifications"),
             icon: "🔔",
             fields: [
-                { label: "危険検出時にメール通知", key: "email_on_critical", value: (settings.email_on_critical as boolean) ?? true, type: "toggle" },
-                { label: "Slack連携", key: "slack_integration", value: (settings.slack_integration as boolean) ?? false, type: "toggle" },
+                { label: t("settings.emailOnCritical"), key: "email_on_critical", value: (settings.email_on_critical as boolean) ?? true, type: "toggle" },
+                { label: t("settings.slackIntegration"), key: "slack_integration", value: (settings.slack_integration as boolean) ?? false, type: "toggle" },
             ],
         },
         {
@@ -78,7 +80,7 @@ export default function SettingsPage() {
             fields: [
                 { label: "App ID", key: "app_id", value: "2915193", type: "readonly" },
                 { label: "Installation ID", key: "installation_id", value: "111510454", type: "readonly" },
-                { label: "権限", key: "permissions", value: "Contents (R), Pull Requests (RW)", type: "readonly" },
+                { label: t("settings.permissions"), key: "permissions", value: "Contents (R), Pull Requests (RW)", type: "readonly" },
             ],
         },
     ];
@@ -89,8 +91,8 @@ export default function SettingsPage() {
 
             <main className="flex-1 ml-64 p-8">
                 <div className="mb-8">
-                    <h2 className="text-2xl font-bold text-white">設定</h2>
-                    <p className="text-sm text-gray-500 mt-1">AIコードレビューの動作をカスタマイズ</p>
+                    <h2 className="text-2xl font-bold text-white">{t("settings.title")}</h2>
+                    <p className="text-sm text-gray-500 mt-1">{t("settings.subtitle")}</p>
                 </div>
 
                 {message && (
@@ -162,7 +164,7 @@ export default function SettingsPage() {
                         disabled={saving}
                         className="w-full py-3 rounded-xl bg-purple-500 hover:bg-purple-600 text-white font-medium text-sm transition-all hover:shadow-lg hover:shadow-purple-500/20 cursor-pointer disabled:opacity-50"
                     >
-                        {saving ? "保存中..." : "設定を保存"}
+                        {saving ? t("settings.saving") : t("settings.save")}
                     </button>
                 </div>
             </main>

@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { useLocale } from "@/components/locale-context";
 
 type ReactionState = "idle" | "helpful" | "not_helpful";
 
 export function ReactionButtons({ reviewId }: { reviewId: string }) {
+    const { t } = useLocale();
     const [state, setState] = useState<ReactionState>("idle");
     const [sending, setSending] = useState(false);
 
@@ -33,19 +35,19 @@ export function ReactionButtons({ reviewId }: { reviewId: string }) {
         return (
             <div className="flex items-center gap-2 text-xs text-gray-500">
                 <span>{state === "helpful" ? "👍" : "👎"}</span>
-                <span>フィードバックありがとうございます</span>
+                <span>{t("review.reactionThanks")}</span>
             </div>
         );
     }
 
     return (
         <div className="flex items-center gap-3">
-            <span className="text-xs text-gray-600">このレビューは役に立ちましたか？</span>
+            <span className="text-xs text-gray-600">{t("review.reactionAsk")}</span>
             <button
                 onClick={() => handleReaction("helpful")}
                 disabled={sending}
                 className="text-lg hover:scale-125 transition-transform cursor-pointer disabled:opacity-50"
-                title="役に立った"
+                title="👍"
             >
                 👍
             </button>
@@ -53,7 +55,7 @@ export function ReactionButtons({ reviewId }: { reviewId: string }) {
                 onClick={() => handleReaction("not_helpful")}
                 disabled={sending}
                 className="text-lg hover:scale-125 transition-transform cursor-pointer disabled:opacity-50"
-                title="役に立たなかった"
+                title="👎"
             >
                 👎
             </button>

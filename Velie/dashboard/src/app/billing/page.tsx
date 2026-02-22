@@ -4,39 +4,44 @@ import { Sidebar } from "@/components/sidebar";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+import { useLocale } from "@/components/locale-context";
 
-const plans = [
+const planData = [
     {
-        name: "無料プラン",
         key: "free",
-        price: "¥0",
-        period: "/月",
-        features: ["月5回レビュー", "リポジトリ1つ", "Claude Haiku", "コミュニティサポート"],
+        nameKey: "plan.free" as const,
+        price: { ja: "¥0", en: "$0", zh: "¥0" },
+        featureKeys: ["feature.reviewsPerMonth", "feature.repos", "feature.communitySupport"] as const,
+        featureParams: [{ n: 5 }, { n: 1 }, {}],
+        model: "Claude Haiku",
         current: true,
     },
     {
-        name: "あんしんプラン",
         key: "anshin",
-        price: "¥980",
-        period: "/月",
-        features: ["月50回レビュー", "リポジトリ5つ", "Claude Sonnet", "メールサポート", "日本語レビュー"],
+        nameKey: "plan.anshin" as const,
+        price: { ja: "¥980", en: "$9", zh: "¥68" },
+        featureKeys: ["feature.reviewsPerMonth", "feature.repos", "feature.emailSupport", "feature.japaneseReview"] as const,
+        featureParams: [{ n: 50 }, { n: 5 }, {}, {}],
+        model: "Claude Sonnet",
         current: false,
     },
     {
-        name: "プロプラン",
         key: "pro",
-        price: "¥2,980",
-        period: "/月",
-        features: ["無制限レビュー", "リポジトリ10個", "Claude Sonnet", "優先サポート", "カスタムプロンプト", "ワンクリック修正"],
+        nameKey: "plan.pro" as const,
+        price: { ja: "¥2,980", en: "$29", zh: "¥198" },
+        featureKeys: ["feature.unlimitedReviews", "feature.repos", "feature.prioritySupport", "feature.customPrompts", "feature.oneClickFix"] as const,
+        featureParams: [{}, { n: 10 }, {}, {}, {}],
+        model: "Claude Sonnet",
         current: false,
         recommended: true,
     },
     {
-        name: "チームプラン",
         key: "team",
-        price: "¥9,800",
-        period: "/月",
-        features: ["無制限すべて", "リポジトリ無制限", "Claude Opus", "専任サポート", "SSO / SAML", "オンプレミス対応"],
+        nameKey: "plan.team" as const,
+        price: { ja: "¥9,800", en: "$99", zh: "¥688" },
+        featureKeys: ["feature.unlimitedAll", "feature.unlimitedRepos", "feature.dedicatedSupport", "feature.ssoSaml", "feature.onPremise"] as const,
+        featureParams: [{}, {}, {}, {}, {}],
+        model: "Claude Opus",
         current: false,
     },
 ];
@@ -52,6 +57,7 @@ interface DashboardStats {
 
 function BillingContent() {
     const searchParams = useSearchParams();
+    const { locale, t } = useLocale();
     const [stats, setStats] = useState<DashboardStats>({ totalReviews: 0, criticalIssues: 0, repos: 0, apiCalls: 0 });
     const [upgradeMessage, setUpgradeMessage] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
@@ -75,13 +81,13 @@ function BillingContent() {
         const plan = searchParams.get("plan");
 
         if (success) {
-            setUpgradeMessage(`🎉 ${plan || "プロ"}プランにアップグレードしました！`);
+            setUpgradeMessage(`🎉 ${plan || "Pro"} ${t("billing.upgraded")}`);
         } else if (canceled) {
-            setUpgradeMessage("支払いがキャンセルされました。いつでもアップグレードできます。");
+            setUpgradeMessage(t("billing.canceled"));
         } else if (searchParams.get("checkout") === "demo") {
-            setUpgradeMessage("🎉 デモモード — Stripe連携は本番環境で有効になります");
+            setUpgradeMessage(t("billing.demoMode"));
         }
-    }, [searchParams]);
+    }, [searchParams, t]);
 
     const usagePercent = Math.min((stats.totalReviews / FREE_LIMIT) * 100, 100);
 
@@ -96,12 +102,12 @@ function BillingContent() {
             });
             const data = await res.json();
             if (data.demo) {
-                setUpgradeMessage("🎉 デモモード — Stripe連携は本番環境で有効になります");
+                setUpgradeMessage(t("billing.demoMode"));
             } else if (data.url) {
                 window.location.href = data.url;
             }
         } catch {
-            setUpgradeMessage("❌ チェックアウトセッションの作成に失敗しました");
+            setUpgradeMessage(t("billing.checkoutError"));
         }
         setLoading(false);
     }
@@ -112,23 +118,21 @@ function BillingContent() {
 
             <main className="flex-1 ml-64 p-8">
                 <div className="mb-8">
-                    <h2 className="text-2xl font-bold text-white">料金プラン</h2>
-                    <p className="text-sm text-gray-500 mt-1">プランの管理と利用状況の確認</p>
+                    <h2 className="text-2xl font-bold text-white">{t("billing.title")}</h2>
+                    <p className="text-sm text-gray-500 mt-1">{t("billing.subtitle")}</p>
                 </div>
 
-                {/* Upgrade Message */}
                 {upgradeMessage && (
                     <div className="glass p-4 mb-6 border-purple-500/30">
                         <p className="text-sm text-purple-300">{upgradeMessage}</p>
                     </div>
                 )}
 
-                {/* Current Usage */}
                 <div className="glass p-6 mb-8">
-                    <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">今月の利用状況</h3>
+                    <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">{t("billing.currentUsage")}</h3>
                     <div className="flex items-end gap-2 mb-3">
                         <span className="text-3xl font-bold text-white">{stats.totalReviews}</span>
-                        <span className="text-gray-500 text-sm mb-1">/ {FREE_LIMIT} レビュー</span>
+                        <span className="text-gray-500 text-sm mb-1">/ {FREE_LIMIT} {t("billing.reviews")}</span>
                     </div>
                     <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
                         <div
@@ -141,14 +145,13 @@ function BillingContent() {
                     </div>
                     <p className="text-xs text-gray-600 mt-2">
                         {usagePercent >= 100
-                            ? "⚠️ 上限に達しました — プランをアップグレードしてください"
-                            : `残り ${FREE_LIMIT - stats.totalReviews} レビュー`}
+                            ? t("billing.limitReached")
+                            : `${t("billing.remaining")} ${FREE_LIMIT - stats.totalReviews} ${t("billing.reviews")}`}
                     </p>
                 </div>
 
-                {/* Pricing Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {plans.map((plan) => (
+                    {planData.map((plan) => (
                         <div
                             key={plan.key}
                             className={`glass p-6 relative ${plan.recommended
@@ -160,21 +163,22 @@ function BillingContent() {
                         >
                             {plan.recommended && (
                                 <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-purple-500 text-white text-[10px] font-bold px-3 py-1 rounded-full tracking-wider">
-                                    おすすめ
+                                    {t("billing.recommended")}
                                 </span>
                             )}
 
-                            <h4 className="text-lg font-bold text-white mb-1">{plan.name}</h4>
-                            <div className="flex items-baseline gap-1 mb-4">
-                                <span className="text-3xl font-bold text-white">{plan.price}</span>
-                                <span className="text-sm text-gray-500">{plan.period}</span>
+                            <h4 className="text-lg font-bold text-white mb-1">{t(plan.nameKey)}</h4>
+                            <div className="flex items-baseline gap-1 mb-1">
+                                <span className="text-3xl font-bold text-white">{plan.price[locale]}</span>
+                                <span className="text-sm text-gray-500">{t("billing.perMonth")}</span>
                             </div>
+                            <p className="text-[10px] text-gray-600 mb-4">{plan.model}</p>
 
                             <ul className="space-y-2 mb-6">
-                                {plan.features.map((feature) => (
-                                    <li key={feature} className="flex items-center gap-2 text-sm text-gray-400">
+                                {plan.featureKeys.map((fk, i) => (
+                                    <li key={fk} className="flex items-center gap-2 text-sm text-gray-400">
                                         <span className="text-emerald-400 text-xs">✓</span>
-                                        {feature}
+                                        {t(fk, plan.featureParams[i] || undefined)}
                                     </li>
                                 ))}
                             </ul>
@@ -189,7 +193,7 @@ function BillingContent() {
                                         : "bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10"
                                     }`}
                             >
-                                {plan.current ? "現在のプラン" : loading ? "処理中..." : "アップグレード"}
+                                {plan.current ? t("billing.currentPlan") : loading ? t("billing.processing") : t("billing.upgrade")}
                             </button>
                         </div>
                     ))}
@@ -201,7 +205,7 @@ function BillingContent() {
 
 export default function BillingPage() {
     return (
-        <Suspense fallback={<div className="flex min-h-screen"><Sidebar /><main className="flex-1 ml-64 p-8"><p className="text-gray-500">読み込み中...</p></main></div>}>
+        <Suspense fallback={<div className="flex min-h-screen"><Sidebar /><main className="flex-1 ml-64 p-8"><p className="text-gray-500">Loading...</p></main></div>}>
             <BillingContent />
         </Suspense>
     );
