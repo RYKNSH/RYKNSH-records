@@ -252,3 +252,133 @@ async def open_fix_pr(
     pr_url = resp.json()["html_url"]
     logger.info("Opened Fix PR: %s", pr_url)
     return pr_url
+
+
+# ---------------------------------------------------------------------------
+# Dashboard entry point — one-click fix from review
+# ---------------------------------------------------------------------------
+
+async def create_fix_pr_from_review(
+    repo_full_name: str,
+    pr_number: int,
+    review_id: str,
+) -> dict:
+    """Create a fix PR from the dashboard one-click fix button.
+
+    Fetches the PR diff, generates AI-powered fix suggestions,
+    creates a fix branch, applies fixes, and opens a Fix PR.
+
+    Args:
+        repo_full_name: Repository full name (e.g., "RYKNSH/app").
+        pr_number: Original PR number.
+        review_id: ID of the stored review to fix.
+
+    Returns:
+        Dict with fix_pr_url and message.
+    """
+    from agent.github_auth import get_installation_token
+    from agent.prompts import SYSTEM_PROMPT
+
+    token = await get_installation_token(repo_full_name)
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/vnd.github+json",
+    }
+
+    async with httpx.AsyncClient(timeout=30) as client:
+        # 1. Get PR info
+        head_branch, head_sha = await get_pr_head_branch(
+            client, repo_full_name, pr_number, headers,
+        )
+
+        # 2. Get PR diff
+        diff_resp = await client.get(
+            f"https://api.github.com/repos/{repo_full_name}/pulls/{pr_number}",
+            headers={**headers, "Accept": "application/vnd.github.v3.diff"},
+        )
+        diff_resp.raise_for_status()
+        diff = diff_resp.text
+
+        # 3. Generate fix suggestions via Claude
+        from langchain_anthropic import ChatAnthropic
+        from langchain_core.messages import SystemMessage, HumanMessage
+
+        llm = ChatAnthropic(model="claude-sonnet-4-20250514", temperature=0.1)
+        fix_prompt = (
+            f"Based on this PR diff, generate specific code fixes.\n"
+            f"For each fix, output in this exact format:\n"
+            f"FILE: <path>\n"
+            f"ORIGINAL:\n```\n<original code>\n```\n"
+            f"FIXED:\n```\n<fixed code>\n```\n"
+            f"REASON: <why>\n\n"
+            f"Diff:\n```diff\n{diff[:30000]}\n```"
+        )
+
+        result = await llm.ainvoke([
+            SystemMessage(content=SYSTEM_PROMPT),
+            HumanMessage(content=fix_prompt),
+        ])
+
+        # 4. Parse suggestions from AI response
+        suggestions = _parse_fix_suggestions(result.content)
+
+        if not suggestions:
+            return {"fix_pr_url": None, "message": "修正箇所が見つかりませんでした"}
+
+        # 5. Create fix branch + apply + open PR
+        fix_branch = await create_fix_branch(
+            client, repo_full_name, head_sha, pr_number, headers,
+        )
+
+        fixed = await apply_suggestions_to_branch(
+            client, repo_full_name, fix_branch, suggestions, headers,
+        )
+
+        if fixed == 0:
+            return {"fix_pr_url": None, "message": "修正を適用できませんでした"}
+
+        pr_url = await open_fix_pr(
+            client, repo_full_name, fix_branch, head_branch,
+            pr_number, suggestions, headers,
+        )
+
+        return {"fix_pr_url": pr_url, "message": f"{fixed}ファイル修正しました"}
+
+
+def _parse_fix_suggestions(content: str) -> list[dict]:
+    """Parse fix suggestions from AI response.
+
+    Expects format:
+        FILE: path/to/file.py
+        ORIGINAL:
+        ```
+        ...
+        ```
+        FIXED:
+        ```
+        ...
+        ```
+        REASON: why
+
+    Returns:
+        List of suggestion dicts with path, original, suggested, reason.
+    """
+    suggestions = []
+    pattern = re.compile(
+        r"FILE:\s*(.+?)\n"
+        r"ORIGINAL:\s*\n```[^\n]*\n(.*?)```\s*\n"
+        r"FIXED:\s*\n```[^\n]*\n(.*?)```\s*\n"
+        r"REASON:\s*(.+?)(?:\n\n|\n?$)",
+        re.DOTALL,
+    )
+
+    for match in pattern.finditer(content):
+        suggestions.append({
+            "path": match.group(1).strip(),
+            "original": match.group(2).strip(),
+            "suggested": match.group(3).strip(),
+            "reason": match.group(4).strip(),
+        })
+
+    logger.info("Parsed %d fix suggestions from AI response", len(suggestions))
+    return suggestions

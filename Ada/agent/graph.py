@@ -45,13 +45,22 @@ class RouterState(TypedDict):
     rag_query: str
     system_prompt_enriched: str | None
 
-    # Internal
+    # Strategist decisions
     selected_model: str
     langchain_messages: list[BaseMessage]
+    quality_tier: str
+    use_cot: bool
+    complexity_score: float
 
     # Tool support (ReAct pattern)
     tool_calls: list[dict[str, Any]]  # Pending tool calls from LLM
     tool_results: list[BaseMessage]  # Tool execution results
+
+    # Validator
+    validation_passed: bool
+    validation_reason: str
+    validation_score: float
+    retry_count: int
 
     # Output
     response_content: str
@@ -194,11 +203,11 @@ async def invoke_llm(state: RouterState, config: RunnableConfig | None = None) -
 
 
 def should_use_tools(state: RouterState) -> str:
-    """Conditional edge: route to tool execution or logging."""
+    """Conditional edge: route to tool execution or validator."""
     tool_calls = state.get("tool_calls", [])
     if tool_calls:
         return "execute_tools"
-    return "log_usage"
+    return "validator"
 
 
 async def execute_tools(state: RouterState, config: RunnableConfig | None = None) -> dict:
@@ -230,20 +239,23 @@ async def execute_tools(state: RouterState, config: RunnableConfig | None = None
                 results.append(ToolMessage(
                     content=str(result),
                     tool_call_id=tool_id,
+                    name=tool_name,
                 ))
-                logger.info("Tool executed: %s -> %d chars", tool_name, len(str(result)))
-            except Exception:
-                logger.exception("Tool execution failed: %s", tool_name)
+                logger.info("Tool executed: %s", tool_name)
+            except Exception as e:
                 results.append(ToolMessage(
-                    content=f"Error executing tool {tool_name}",
+                    content=f"Error executing {tool_name}: {e}",
                     tool_call_id=tool_id,
+                    name=tool_name,
                 ))
+                logger.error("Tool execution failed: %s — %s", tool_name, e)
         else:
-            logger.warning("Tool not found: %s", tool_name)
             results.append(ToolMessage(
-                content=f"Tool not found: {tool_name}",
+                content=f"Tool '{tool_name}' not found in registry",
                 tool_call_id=tool_id,
+                name=tool_name,
             ))
+            logger.warning("Tool not found: %s", tool_name)
 
     return {
         "tool_results": results,
@@ -251,49 +263,54 @@ async def execute_tools(state: RouterState, config: RunnableConfig | None = None
     }
 
 
-async def log_usage(state: RouterState) -> dict:
+def log_usage(state: RouterState) -> dict:
     """Log usage metrics to Supabase for billing and analytics."""
+    import httpx
     from server.config import get_settings
 
     cfg = get_settings()
     usage = state.get("usage", {})
-    tenant_id = state.get("tenant_id", "unknown")
     model = state.get("response_model", "unknown")
+    tenant_id = state.get("tenant_id", "unknown")
     request_id = state.get("request_id", "unknown")
+    quality_tier = state.get("quality_tier", "standard")
+    validation_score = state.get("validation_score", 1.0)
 
     logger.info(
-        "Usage: tenant=%s model=%s input=%d output=%d request=%s",
-        tenant_id, model,
-        usage.get("input_tokens", 0),
-        usage.get("output_tokens", 0),
+        "Usage: model=%s, tokens=%s, tenant=%s, request=%s, tier=%s, val_score=%.2f",
+        model,
+        usage.get("total_tokens", 0),
+        tenant_id,
         request_id,
+        quality_tier,
+        validation_score,
     )
 
-    # Persist to Supabase if configured
+    # Async Supabase logging (fire-and-forget, non-blocking)
     if cfg.supabase_url and cfg.supabase_anon_key:
         try:
-            url = f"{cfg.supabase_url}/rest/v1/ada_usage_logs"
+            url = f"{cfg.supabase_url}/rest/v1/ada_usage"
             headers = {
                 "apikey": cfg.supabase_anon_key,
                 "Authorization": f"Bearer {cfg.supabase_anon_key}",
                 "Content-Type": "application/json",
                 "Prefer": "return=minimal",
             }
-            payload = {
+            row = {
                 "tenant_id": tenant_id,
-                "model": model,
-                "input_tokens": usage.get("input_tokens", 0),
-                "output_tokens": usage.get("output_tokens", 0),
                 "request_id": request_id,
+                "model": model,
+                "prompt_tokens": usage.get("prompt_tokens", 0),
+                "completion_tokens": usage.get("completion_tokens", 0),
+                "total_tokens": usage.get("total_tokens", 0),
+                "quality_tier": quality_tier,
+                "validation_score": validation_score,
             }
-
-            async with httpx.AsyncClient(timeout=5.0) as client:
-                resp = await client.post(url, headers=headers, json=payload)
-                resp.raise_for_status()
-
-            logger.debug("Usage logged to Supabase for request %s", request_id)
+            # Use synchronous httpx since log_usage is sync
+            with httpx.Client(timeout=5.0) as client:
+                client.post(url, headers=headers, json=row)
         except Exception:
-            logger.warning("Failed to log usage to Supabase (non-fatal)", exc_info=True)
+            logger.debug("Failed to log usage to Supabase (non-critical)")
 
     return {}
 
@@ -304,21 +321,21 @@ async def log_usage(state: RouterState) -> dict:
 
 def _convert_messages(messages: list[dict[str, str]]) -> list[BaseMessage]:
     """Convert OpenAI-format messages to LangChain message objects."""
-    converted: list[BaseMessage] = []
+    result: list[BaseMessage] = []
     for msg in messages:
         role = msg.get("role", "user")
         content = msg.get("content", "")
         if role == "system":
-            converted.append(SystemMessage(content=content))
+            result.append(SystemMessage(content=content))
         elif role == "assistant":
-            converted.append(AIMessage(content=content))
+            result.append(AIMessage(content=content))
         else:
-            converted.append(HumanMessage(content=content))
-    return converted
+            result.append(HumanMessage(content=content))
+    return result
 
 
 # ---------------------------------------------------------------------------
-# Graph Definition
+# Graph helpers
 # ---------------------------------------------------------------------------
 
 def _sentinel_blocked_response(state: RouterState) -> dict:
@@ -341,14 +358,29 @@ def _should_proceed_after_sentinel(state: RouterState) -> str:
     return "sentinel_blocked"
 
 
+def _should_retry_after_validation(state: RouterState) -> str:
+    """Conditional edge: retry invoke_llm or proceed to log_usage."""
+    if state.get("validation_passed", True):
+        return "log_usage"
+    retry_count = state.get("retry_count", 0)
+    if retry_count < 1:
+        return "invoke_llm"
+    return "log_usage"  # Max retries reached, proceed anyway
+
+
+# ---------------------------------------------------------------------------
+# Graph Definition
+# ---------------------------------------------------------------------------
+
 def build_router_graph(
     checkpointer: AsyncPostgresSaver | None = None,
     tools: list[StructuredTool] | None = None,
 ) -> StateGraph:
     """Build the LLM router graph.
 
-    Pipeline: sentinel → context_loader → select_model → invoke_llm → [tools?] → log_usage → END
-    If sentinel blocks: sentinel → sentinel_blocked → END
+    Pipeline: sentinel → context_loader → strategist → invoke_llm → validator → log_usage → END
+    Validator retry: validation_failed + retry<1 → invoke_llm (re-run)
+    Sentinel block: sentinel → sentinel_blocked → END
 
     Args:
         checkpointer: Optional AsyncPostgresSaver for stateful persistence.
@@ -356,6 +388,8 @@ def build_router_graph(
     """
     from agent.nodes.sentinel import sentinel_node
     from agent.nodes.context_loader import context_loader_node
+    from agent.nodes.strategist import strategist_node
+    from agent.nodes.validator import validator_node
 
     graph = StateGraph(RouterState)
 
@@ -366,10 +400,19 @@ def build_router_graph(
     # Context enrichment (RAG + system prompt)
     graph.add_node("context_loader", context_loader_node.as_graph_node())
 
-    # Core nodes
-    graph.add_node("select_model", select_model)
+    # Strategist (model selection + strategy)
+    graph.add_node("strategist", strategist_node.as_graph_node())
+
+    # Core execution
     graph.add_node("invoke_llm", invoke_llm)
+
+    # Validation
+    graph.add_node("validator", validator_node.as_graph_node())
+
+    # Logging
     graph.add_node("log_usage", log_usage)
+
+    # --- Edges ---
 
     # Entry: sentinel first
     graph.set_entry_point("sentinel")
@@ -380,9 +423,9 @@ def build_router_graph(
     )
     graph.add_edge("sentinel_blocked", END)
 
-    # context_loader → select_model
-    graph.add_edge("context_loader", "select_model")
-    graph.add_edge("select_model", "invoke_llm")
+    # context_loader → strategist → invoke_llm
+    graph.add_edge("context_loader", "strategist")
+    graph.add_edge("strategist", "invoke_llm")
 
     if tools:
         # ReAct pattern: invoke_llm may return tool_calls
@@ -390,12 +433,19 @@ def build_router_graph(
         graph.add_conditional_edges(
             "invoke_llm",
             should_use_tools,
-            {"execute_tools": "execute_tools", "log_usage": "log_usage"},
+            {"execute_tools": "execute_tools", "validator": "validator"},
         )
         graph.add_edge("execute_tools", "invoke_llm")  # Loop back
     else:
-        # Simple linear flow (backward compatible)
-        graph.add_edge("invoke_llm", "log_usage")
+        # Simple linear flow
+        graph.add_edge("invoke_llm", "validator")
+
+    # Validator → retry or log_usage
+    graph.add_conditional_edges(
+        "validator",
+        _should_retry_after_validation,
+        {"invoke_llm": "invoke_llm", "log_usage": "log_usage"},
+    )
 
     graph.add_edge("log_usage", END)
 

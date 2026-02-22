@@ -156,6 +156,49 @@ async def detailed_health():
     return get_health_summary()
 
 
+@app.post("/api/autofix")
+async def autofix_endpoint(request: Request, background_tasks: BackgroundTasks):
+    """Trigger auto-fix for a review finding.
+
+    Creates a fix branch, applies AI-generated fixes, and opens a Fix PR.
+    Called from the dashboard "one-click fix" button.
+    """
+    body = await request.json()
+    review_id = body.get("review_id")
+    repo = body.get("repo")
+    pr_number = body.get("pr_number")
+
+    if not review_id or not repo or not pr_number:
+        raise HTTPException(status_code=400, detail="Missing required fields")
+
+    try:
+        from agent.autofix import create_fix_pr_from_review
+
+        result = await create_fix_pr_from_review(
+            repo_full_name=repo,
+            pr_number=pr_number,
+            review_id=review_id,
+        )
+
+        return {
+            "success": True,
+            "fix_pr_url": result.get("fix_pr_url"),
+            "message": "修正PRを作成しました",
+        }
+    except ImportError:
+        raise HTTPException(status_code=501, detail="Autofix module not available")
+    except Exception as e:
+        logger.exception("Autofix failed for %s PR#%d", repo, pr_number)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/shadow/report")
+async def shadow_report():
+    """Get shadow review accuracy report."""
+    from agent.shadow_review import generate_accuracy_report
+    return generate_accuracy_report()
+
+
 @app.post("/webhook/github")
 async def github_webhook(
     request: Request,
