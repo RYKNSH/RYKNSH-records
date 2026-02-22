@@ -229,6 +229,7 @@ async def chat_completions(
             "tenant_id": str(tenant.tenant_id),
             "default_model": tenant.default_model,
             "allowed_models": list(tenant.allowed_models),
+            "system_prompt_override": tenant.system_prompt_override,
         }
     }
 

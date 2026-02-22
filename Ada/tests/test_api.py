@@ -55,7 +55,7 @@ class TestChatCompletions:
         })
         assert resp.status_code == 401
 
-    def test_streaming_not_supported(self, client):
+    def test_streaming_returns_sse(self, client):
         resp = client.post(
             "/v1/chat/completions",
             headers={"Authorization": "Bearer ada-test-key"},
@@ -64,8 +64,8 @@ class TestChatCompletions:
                 "stream": True,
             },
         )
-        assert resp.status_code == 400
-        assert "Stream" in resp.json()["detail"] or "stream" in resp.json()["detail"].lower()
+        # Streaming should return SSE content type
+        assert resp.headers.get("content-type", "").startswith("text/event-stream")
 
     def test_disallowed_model(self, client):
         resp = client.post(

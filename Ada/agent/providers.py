@@ -104,11 +104,13 @@ async def invoke_model(
     max_tokens: int | None = None,
     anthropic_api_key: str = "",
     openai_api_key: str = "",
+    tools: list | None = None,
 ) -> dict[str, Any]:
     """Invoke an LLM model and return the response.
 
     Returns:
-        dict with keys: content, model, usage (input_tokens, output_tokens)
+        dict with keys: content, model, usage (input_tokens, output_tokens),
+        and optionally tool_calls (list of dicts with name, args, id)
     """
     spec = MODELS.get(model_id)
     if spec is None:
@@ -118,11 +120,11 @@ async def invoke_model(
 
     if spec.provider == "anthropic":
         return await _invoke_anthropic(
-            spec, messages, temperature, effective_max, anthropic_api_key
+            spec, messages, temperature, effective_max, anthropic_api_key, tools
         )
     elif spec.provider == "openai":
         return await _invoke_openai(
-            spec, messages, temperature, effective_max, openai_api_key
+            spec, messages, temperature, effective_max, openai_api_key, tools
         )
     else:
         raise ValueError(f"Unknown provider: {spec.provider}")
@@ -134,6 +136,7 @@ async def _invoke_anthropic(
     temperature: float,
     max_tokens: int,
     api_key: str,
+    tools: list | None = None,
 ) -> dict[str, Any]:
     """Invoke Anthropic Claude model."""
     from langchain_anthropic import ChatAnthropic
@@ -144,17 +147,35 @@ async def _invoke_anthropic(
         max_tokens=max_tokens,
         api_key=api_key,
     )
+
+    if tools:
+        llm = llm.bind_tools(tools)
+
     response = await llm.ainvoke(messages)
 
     usage = response.usage_metadata or {}
-    return {
-        "content": response.content,
+    result: dict[str, Any] = {
+        "content": response.content if isinstance(response.content, str) else "",
         "model": spec.model_id,
         "usage": {
             "input_tokens": usage.get("input_tokens", 0),
             "output_tokens": usage.get("output_tokens", 0),
         },
     }
+
+    # Extract tool calls if present
+    tool_calls = getattr(response, "tool_calls", None)
+    if tool_calls:
+        result["tool_calls"] = [
+            {"name": tc["name"], "args": tc["args"], "id": tc.get("id", "")}
+            for tc in tool_calls
+        ]
+        # When LLM makes tool calls, content may be list or empty
+        if not result["content"] and isinstance(response.content, list):
+            text_parts = [b["text"] for b in response.content if isinstance(b, dict) and b.get("type") == "text"]
+            result["content"] = "\n".join(text_parts)
+
+    return result
 
 
 async def _invoke_openai(
@@ -163,6 +184,7 @@ async def _invoke_openai(
     temperature: float,
     max_tokens: int,
     api_key: str,
+    tools: list | None = None,
 ) -> dict[str, Any]:
     """Invoke OpenAI GPT model."""
     from langchain_openai import ChatOpenAI
@@ -173,17 +195,30 @@ async def _invoke_openai(
         max_tokens=max_tokens,
         api_key=api_key,
     )
+
+    if tools:
+        llm = llm.bind_tools(tools)
+
     response = await llm.ainvoke(messages)
 
     usage = response.usage_metadata or {}
-    return {
-        "content": response.content,
+    result: dict[str, Any] = {
+        "content": response.content if isinstance(response.content, str) else "",
         "model": spec.model_id,
         "usage": {
             "input_tokens": usage.get("input_tokens", 0),
             "output_tokens": usage.get("output_tokens", 0),
         },
     }
+
+    tool_calls = getattr(response, "tool_calls", None)
+    if tool_calls:
+        result["tool_calls"] = [
+            {"name": tc["name"], "args": tc["args"], "id": tc.get("id", "")}
+            for tc in tool_calls
+        ]
+
+    return result
 
 
 async def stream_model(

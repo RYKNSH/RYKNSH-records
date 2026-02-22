@@ -1,13 +1,14 @@
 import { Sidebar } from "@/components/sidebar";
+import { FixButton } from "@/components/fix-button";
 import { getReviews, timeAgo, type Review } from "@/lib/data";
 import Link from "next/link";
 
 export const revalidate = 10;
 
 const severityConfig = {
-    critical: { dot: "bg-red-500", label: "Critical", bg: "bg-red-500/10 text-red-400", icon: "🔴" },
-    warning: { dot: "bg-amber-500", label: "Warning", bg: "bg-amber-500/10 text-amber-400", icon: "🟡" },
-    clean: { dot: "bg-emerald-500", label: "Clean", bg: "bg-emerald-500/10 text-emerald-400", icon: "✅" },
+    critical: { symbol: "×", label: "危険", bg: "bg-red-500/10 text-red-400", border: "border-red-500/60" },
+    warning: { symbol: "△", label: "注意", bg: "bg-amber-500/10 text-amber-400", border: "border-amber-500/60" },
+    clean: { symbol: "○", label: "安全", bg: "bg-emerald-500/10 text-emerald-400", border: "border-emerald-500/60" },
 };
 
 function ReviewSection({ title, body }: { title: string; body: string }) {
@@ -87,7 +88,7 @@ export default async function ReviewDetailPage({ params }: { params: Promise<{ i
                         <div className="flex-1">
                             <div className="flex items-center gap-3 mb-2">
                                 <span className={`text-xs font-medium px-3 py-1 rounded-full ${config.bg}`}>
-                                    {config.icon} {config.label}
+                                    {config.symbol} {config.label}
                                 </span>
                                 <span className="text-xs text-gray-600">{timeAgo(review.created_at)}</span>
                             </div>
@@ -121,6 +122,23 @@ export default async function ReviewDetailPage({ params }: { params: Promise<{ i
                         </div>
                     ))}
                 </div>
+
+                {/* One-Click Fix Button */}
+                {review.severity !== "clean" && (
+                    <div className="glass p-6">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h4 className="text-sm font-semibold text-white mb-1">問題を修正する</h4>
+                                <p className="text-xs text-gray-500">Velieが自動で修正PRを作成します</p>
+                            </div>
+                            <FixButton
+                                reviewId={review.id}
+                                repo={review.repo_full_name}
+                                prNumber={review.pr_number}
+                            />
+                        </div>
+                    </div>
+                )}
 
                 {/* Back link */}
                 <div className="mt-8">

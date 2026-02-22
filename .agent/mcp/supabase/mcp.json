@@ -1,0 +1,10 @@
+{
+  "name": "supabase",
+  "version": "1.0.0",
+  "type": "mcp",
+  "transport": "http",
+  "url": "https://mcp.supabase.com/mcp",
+  "headers": {
+    "Authorization": "Bearer ${SUPABASE_ACCESS_TOKEN}"
+  }
+}

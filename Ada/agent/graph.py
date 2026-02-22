@@ -1,6 +1,9 @@
 """Ada Core API — LangGraph LLM Router Graph.
 
-The core loop: select_model → invoke_llm → log_usage
+Execution Layer pipeline:
+- sentinel → select_model → invoke_llm → [tools?] → log_usage
+
+Sentinel blocks dangerous inputs before any LLM processing.
 """
 
 import logging
@@ -11,6 +14,7 @@ from langchain_core.runnables import RunnableConfig
 
 import httpx
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, BaseMessage
+from langchain_core.tools import StructuredTool
 from langgraph.graph import END, StateGraph
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
@@ -31,9 +35,23 @@ class RouterState(TypedDict):
     max_tokens: int | None
     tenant_id: str
 
+    # Sentinel (gate check)
+    sentinel_passed: bool
+    sentinel_reason: str
+    sentinel_risk_score: float
+
+    # Context loader (RAG + system prompt)
+    rag_context: list[dict[str, Any]]
+    rag_query: str
+    system_prompt_enriched: str | None
+
     # Internal
     selected_model: str
     langchain_messages: list[BaseMessage]
+
+    # Tool support (ReAct pattern)
+    tool_calls: list[dict[str, Any]]  # Pending tool calls from LLM
+    tool_results: list[BaseMessage]  # Tool execution results
 
     # Output
     response_content: str
@@ -77,6 +95,12 @@ def select_model(state: RouterState, config: RunnableConfig | None = None) -> di
     # Convert OpenAI-format messages to LangChain messages
     lc_messages = _convert_messages(state["messages"])
 
+    # Inject enriched system prompt (from context_loader: system + RAG)
+    system_prompt = state.get("system_prompt_enriched")
+    if system_prompt:
+        lc_messages.insert(0, SystemMessage(content=system_prompt))
+        logger.info("Enriched system prompt injected (includes RAG context)")
+
     request_id = str(uuid.uuid4())
 
     logger.info(
@@ -92,15 +116,29 @@ def select_model(state: RouterState, config: RunnableConfig | None = None) -> di
 
 
 async def invoke_llm(state: RouterState, config: RunnableConfig | None = None) -> dict:
-    """Invoke the selected LLM provider with automatic fallback."""
+    """Invoke the selected LLM provider with automatic fallback.
+
+    Supports tool binding: if tools are provided via config, the LLM
+    may return tool_calls instead of a direct response.
+    """
     from agent.providers import get_fallback, invoke_model
     from server.config import get_settings
 
     cfg = get_settings()
     model_id = state["selected_model"]
-    messages = state["langchain_messages"]
+    messages = list(state["langchain_messages"])
     temperature = state.get("temperature", 0.7)
     max_tokens = state.get("max_tokens")
+
+    # Append tool results from previous iteration (ReAct loop)
+    tool_results = state.get("tool_results", [])
+    if tool_results:
+        messages.extend(tool_results)
+
+    # Get tools from config (if any)
+    tools = None
+    if config and "configurable" in config:
+        tools = config["configurable"].get("tools")
 
     try:
         result = await invoke_model(
@@ -110,12 +148,17 @@ async def invoke_llm(state: RouterState, config: RunnableConfig | None = None) -
             max_tokens=max_tokens,
             anthropic_api_key=cfg.anthropic_api_key,
             openai_api_key=cfg.openai_api_key,
+            tools=tools,
         )
-        return {
+
+        output: dict[str, Any] = {
             "response_content": result["content"],
             "response_model": result["model"],
             "usage": result["usage"],
+            "tool_calls": result.get("tool_calls", []),
+            "tool_results": [],  # Reset for next iteration
         }
+        return output
 
     except Exception as primary_err:
         # Automatic fallback
@@ -133,17 +176,79 @@ async def invoke_llm(state: RouterState, config: RunnableConfig | None = None) -
                     max_tokens=max_tokens,
                     anthropic_api_key=cfg.anthropic_api_key,
                     openai_api_key=cfg.openai_api_key,
+                    tools=tools,
                 )
-                return {
+                output = {
                     "response_content": result["content"],
                     "response_model": result["model"],
                     "usage": result["usage"],
+                    "tool_calls": result.get("tool_calls", []),
+                    "tool_results": [],
                 }
+                return output
             except Exception as fallback_err:
                 logger.error("Fallback model %s also failed: %s", fallback_id, fallback_err)
                 raise fallback_err from primary_err
 
         raise
+
+
+def should_use_tools(state: RouterState) -> str:
+    """Conditional edge: route to tool execution or logging."""
+    tool_calls = state.get("tool_calls", [])
+    if tool_calls:
+        return "execute_tools"
+    return "log_usage"
+
+
+async def execute_tools(state: RouterState, config: RunnableConfig | None = None) -> dict:
+    """Execute pending tool calls and return results.
+
+    Looks up tools from config and executes each tool_call.
+    Results are stored as ToolMessages for the next LLM invocation.
+    """
+    from langchain_core.messages import ToolMessage
+
+    tool_calls = state.get("tool_calls", [])
+    tools_map: dict[str, StructuredTool] = {}
+
+    if config and "configurable" in config:
+        lc_tools = config["configurable"].get("tools", [])
+        tools_map = {t.name: t for t in (lc_tools or [])}
+
+    results: list[BaseMessage] = []
+
+    for tc in tool_calls:
+        tool_name = tc.get("name", "")
+        tool_args = tc.get("args", {})
+        tool_id = tc.get("id", str(uuid.uuid4()))
+
+        if tool_name in tools_map:
+            try:
+                tool = tools_map[tool_name]
+                result = await tool.ainvoke(tool_args)
+                results.append(ToolMessage(
+                    content=str(result),
+                    tool_call_id=tool_id,
+                ))
+                logger.info("Tool executed: %s -> %d chars", tool_name, len(str(result)))
+            except Exception:
+                logger.exception("Tool execution failed: %s", tool_name)
+                results.append(ToolMessage(
+                    content=f"Error executing tool {tool_name}",
+                    tool_call_id=tool_id,
+                ))
+        else:
+            logger.warning("Tool not found: %s", tool_name)
+            results.append(ToolMessage(
+                content=f"Tool not found: {tool_name}",
+                tool_call_id=tool_id,
+            ))
+
+    return {
+        "tool_results": results,
+        "tool_calls": [],  # Clear pending calls
+    }
 
 
 async def log_usage(state: RouterState) -> dict:
@@ -216,22 +321,82 @@ def _convert_messages(messages: list[dict[str, str]]) -> list[BaseMessage]:
 # Graph Definition
 # ---------------------------------------------------------------------------
 
-def build_router_graph(checkpointer: AsyncPostgresSaver | None = None) -> StateGraph:
-    """Build the LLM router graph: select_model → invoke_llm → log_usage.
+def _sentinel_blocked_response(state: RouterState) -> dict:
+    """Generate an error response when sentinel blocks a request."""
+    return {
+        "response_content": (
+            "Your request was blocked by our safety system. "
+            "Please rephrase your message and try again."
+        ),
+        "response_model": "sentinel",
+        "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
+        "request_id": state.get("request_id", str(uuid.uuid4())),
+    }
+
+
+def _should_proceed_after_sentinel(state: RouterState) -> str:
+    """Conditional edge: proceed to context_loader or block."""
+    if state.get("sentinel_passed", True):
+        return "context_loader"
+    return "sentinel_blocked"
+
+
+def build_router_graph(
+    checkpointer: AsyncPostgresSaver | None = None,
+    tools: list[StructuredTool] | None = None,
+) -> StateGraph:
+    """Build the LLM router graph.
+
+    Pipeline: sentinel → context_loader → select_model → invoke_llm → [tools?] → log_usage → END
+    If sentinel blocks: sentinel → sentinel_blocked → END
 
     Args:
         checkpointer: Optional AsyncPostgresSaver for stateful persistence.
-                      If None, the graph runs in stateless mode.
+        tools: Optional list of LangChain StructuredTools for ReAct pattern.
     """
+    from agent.nodes.sentinel import sentinel_node
+    from agent.nodes.context_loader import context_loader_node
+
     graph = StateGraph(RouterState)
 
+    # Sentinel gate
+    graph.add_node("sentinel", sentinel_node.as_graph_node())
+    graph.add_node("sentinel_blocked", _sentinel_blocked_response)
+
+    # Context enrichment (RAG + system prompt)
+    graph.add_node("context_loader", context_loader_node.as_graph_node())
+
+    # Core nodes
     graph.add_node("select_model", select_model)
     graph.add_node("invoke_llm", invoke_llm)
     graph.add_node("log_usage", log_usage)
 
-    graph.set_entry_point("select_model")
+    # Entry: sentinel first
+    graph.set_entry_point("sentinel")
+    graph.add_conditional_edges(
+        "sentinel",
+        _should_proceed_after_sentinel,
+        {"context_loader": "context_loader", "sentinel_blocked": "sentinel_blocked"},
+    )
+    graph.add_edge("sentinel_blocked", END)
+
+    # context_loader → select_model
+    graph.add_edge("context_loader", "select_model")
     graph.add_edge("select_model", "invoke_llm")
-    graph.add_edge("invoke_llm", "log_usage")
+
+    if tools:
+        # ReAct pattern: invoke_llm may return tool_calls
+        graph.add_node("execute_tools", execute_tools)
+        graph.add_conditional_edges(
+            "invoke_llm",
+            should_use_tools,
+            {"execute_tools": "execute_tools", "log_usage": "log_usage"},
+        )
+        graph.add_edge("execute_tools", "invoke_llm")  # Loop back
+    else:
+        # Simple linear flow (backward compatible)
+        graph.add_edge("invoke_llm", "log_usage")
+
     graph.add_edge("log_usage", END)
 
     compile_kwargs = {}
@@ -245,9 +410,12 @@ def build_router_graph(checkpointer: AsyncPostgresSaver | None = None) -> StateG
 router_graph = build_router_graph()
 
 
-def rebuild_with_checkpointer(checkpointer: AsyncPostgresSaver | None) -> None:
+def rebuild_with_checkpointer(
+    checkpointer: AsyncPostgresSaver | None,
+    tools: list[StructuredTool] | None = None,
+) -> None:
     """Rebuild the global router_graph with a checkpointer (called during lifespan)."""
     global router_graph
     if checkpointer:
-        router_graph = build_router_graph(checkpointer)
-        logger.info("Router graph rebuilt with checkpointer")
+        router_graph = build_router_graph(checkpointer, tools=tools)
+        logger.info("Router graph rebuilt with checkpointer (tools=%d)", len(tools or []))

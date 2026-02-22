@@ -138,6 +138,9 @@ async def review_code(state: QAState, config: RunnableConfig) -> dict:
         temperature=0.1,
     )
 
+    # Get review language from tenant config
+    review_language = (config.get("configurable", {}) or {}).get("review_language", "English")
+
     user_prompt = REVIEW_USER_TEMPLATE.format(
         pr_number=state["pr_number"],
         repo_full_name=state["repo_full_name"],
@@ -146,6 +149,7 @@ async def review_code(state: QAState, config: RunnableConfig) -> dict:
         pr_body=state.get("pr_body", "No description provided."),
         diff=state["diff"],
         repo_context=_get_repo_context(state["repo_full_name"]),
+        review_language=review_language,
     )
 
     messages = [
