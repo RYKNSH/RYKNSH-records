@@ -36,6 +36,7 @@ class CyrusState(TypedDict, total=False):
     viral_strategies: list[dict[str, Any]]
     trend_signals: list[dict[str, Any]]
     ad_plan: dict[str, Any]
+    community_seeding: dict[str, Any]
     generated_content: list[dict[str, Any]]
     qualified_leads: list[dict[str, Any]]
 

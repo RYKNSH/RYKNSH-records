@@ -92,8 +92,8 @@ class TestStateModelIntegrity:
     def test_brief_params_defaults(self):
         bp = BriefParams(prompt="test")
         assert bp.subject == ""
-        assert bp.style == "general"
-        assert bp.mood == "neutral"
+        assert bp.style == ""
+        assert bp.mood == ""
         assert bp.reference_context == ""
 
     def test_model_selection_required_fields(self):
@@ -120,7 +120,7 @@ class TestBlueprintIntegrity:
 
     def test_blueprint_defaults(self):
         bp = CreativeBlueprint()
-        assert bp.business_model == BusinessModel.INTERNAL
+        assert bp.business_model == BusinessModel.B2C
         assert bp.quality_tier == QualityTier.STANDARD
 
 

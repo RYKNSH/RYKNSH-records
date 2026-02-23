@@ -206,8 +206,8 @@ class TestFullPipelineB2B:
         assert "proposal" in result
         assert "meeting" in result
         assert "close_strategy" in result
-        # 14 nodes (10 shared + 4 B2B)
-        assert len(result.get("node_metrics", [])) == 14
+        # 18 nodes: Intel(3)+Trust(1)+Acq(8)+B2B(4)+Evolution(2)
+        assert len(result.get("node_metrics", [])) == 18
         assert result.get("errors", []) == []
 
 
@@ -228,8 +228,8 @@ class TestFullPipelineB2C:
         assert "activation" in result
         assert "retention_plan" in result
         assert "monetization" in result
-        # 13 nodes (10 shared + 3 B2C)
-        assert len(result.get("node_metrics", [])) == 13
+        # 17 nodes: Intel(3)+Trust(1)+Acq(8)+B2C(3)+Evolution(2)
+        assert len(result.get("node_metrics", [])) == 17
         assert result.get("errors", []) == []
 
 
@@ -250,8 +250,8 @@ class TestFullPipelineC2C:
         assert "onboarding" in result
         assert "trust_building" in result
         assert "marketplace_strategy" in result
-        # 13 nodes (10 shared + 3 C2C)
-        assert len(result.get("node_metrics", [])) == 13
+        # 17 nodes: Intel(3)+Trust(1)+Acq(8)+C2C(3)+Evolution(2)
+        assert len(result.get("node_metrics", [])) == 17
         assert result.get("errors", []) == []
 
 
@@ -273,4 +273,4 @@ class TestB2CHighDealComplexity:
         # Should route to B2B pipeline
         assert "nurture_sequence" in result
         assert "close_strategy" in result
-        assert len(result.get("node_metrics", [])) == 14
+        assert len(result.get("node_metrics", [])) == 18

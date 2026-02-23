@@ -126,9 +126,9 @@ class TestFullGrowthGraph:
         assert "campaign" in result
         assert "ad_plan" in result
 
-        # 14 nodes (10 shared + 4 B2B, default mode=b2b)
+        # 18 nodes: Intel(3)+Trust(1)+Acq(8)+B2B(4)+Evolution(2)
         metrics = result.get("node_metrics", [])
-        assert len(metrics) == 14
+        assert len(metrics) == 18
 
     @pytest.mark.asyncio
     async def test_no_errors(self):

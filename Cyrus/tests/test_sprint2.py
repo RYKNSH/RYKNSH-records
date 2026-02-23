@@ -208,5 +208,5 @@ class TestGrowthGraph:
         }
         result = await run_growth(blueprint)
         metrics = result.get("node_metrics", [])
-        # 14 nodes (10 shared + 4 B2B pipeline, default mode=b2b)
-        assert len(metrics) == 14
+        # 18 nodes: Intel(3)+Trust(1)+Acq(8)+B2B(4)+Evolution(2)
+        assert len(metrics) == 18
