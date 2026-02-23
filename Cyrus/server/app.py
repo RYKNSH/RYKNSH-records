@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
+from fastapi.staticfiles import StaticFiles
 
 from server.routes.intelligence import router as intelligence_router
 from server.routes.blueprint import router as blueprint_router
@@ -55,3 +58,16 @@ async def health() -> dict[str, str]:
         "nodes": "23",
         "layers": "4",
     }
+
+
+@app.get("/")
+async def root():
+    """Redirect to landing page."""
+    return RedirectResponse(url="/static/index.html")
+
+
+# Mount static files
+static_dir = Path(__file__).resolve().parent.parent / "static"
+if static_dir.exists():
+    app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+

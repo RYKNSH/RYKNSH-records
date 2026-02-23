@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cyrus Dashboard</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+    <div class="grid-bg"></div>
+
+    <!-- NAV -->
+    <nav class="nav">
+        <div class="nav-inner">
+            <a href="/" class="nav-logo">Cyrus<span>.</span></a>
+            <div class="nav-links">
+                <span class="status"><span class="status-dot"></span> <span id="nav-status">未接続</span></span>
+                <span class="plan-badge" id="nav-plan">—</span>
+                <button class="btn btn-secondary btn-sm" onclick="logout()">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- LOGIN OVERLAY -->
+    <div id="login-overlay" class="relative"
+        style="min-height:100vh;display:flex;align-items:center;justify-content:center;">
+        <div class="cta-box" style="max-width:420px;">
+            <h2 style="font-family:var(--font-display);font-size:1.5rem;margin-bottom:1rem;text-align:center;">Dashboard
+                Login</h2>
+            <div id="login-message"></div>
+            <div class="input-group">
+                <input type="text" id="login-key" placeholder="API Key (cyrus_...)">
+            </div>
+            <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="login()">ログイン →</button>
+            <p style="text-align:center;margin-top:1rem;font-size:0.85rem;color:var(--text-muted);">
+                アカウントがない場合は <a href="/" style="color:var(--accent);">こちら</a> から作成
+            </p>
+        </div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div id="dashboard-main" class="dashboard hidden">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-item active" data-tab="pipeline" onclick="switchTab('pipeline')">
+                ⚡ Pipeline 実行
+            </div>
+            <div class="sidebar-item" data-tab="results" onclick="switchTab('results')">
+                📊 Results
+            </div>
+            <div class="sidebar-item" data-tab="apikeys" onclick="switchTab('apikeys')">
+                🔑 API Keys
+            </div>
+            <div class="sidebar-item" data-tab="settings" onclick="switchTab('settings')">
+                ⚙️ Settings
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Pipeline Tab -->
+            <div id="tab-pipeline" class="tab-content">
+                <div class="dash-header">
+                    <h1 class="dash-title">Pipeline 実行</h1>
+                    <span id="tenant-name" style="color:var(--text-secondary)"></span>
+                </div>
+
+                <!-- Stats -->
+                <div class="dash-grid">
+                    <div class="dash-card">
+                        <h3>Total Runs</h3>
+                        <div class="value" id="stat-runs">0</div>
+                    </div>
+                    <div class="dash-card">
+                        <h3>Last Run</h3>
+                        <div class="value" id="stat-last" style="font-size:1rem;">—</div>
+                    </div>
+                    <div class="dash-card">
+                        <h3>Active Nodes</h3>
+                        <div class="value">23</div>
+                    </div>
+                </div>
+
+                <!-- Runner -->
+                <div class="pipeline-runner">
+                    <h3>パイプラインを実行</h3>
+                    <div class="mode-selector">
+                        <button class="mode-btn active" data-mode="b2b" onclick="selectMode('b2b')">
+                            🏢 B2B
+                            <small>Enterprise Sales</small>
+                        </button>
+                        <button class="mode-btn" data-mode="b2c" onclick="selectMode('b2c')">
+                            👤 B2C
+                            <small>Consumer Growth</small>
+                        </button>
+                        <button class="mode-btn" data-mode="c2c" onclick="selectMode('c2c')">
+                            🔄 C2C
+                            <small>Marketplace</small>
+                        </button>
+                    </div>
+
+                    <div class="input-group">
+                        <input type="text" id="run-industry" placeholder="業界 (例: saas, ec, entertainment)" value="saas">
+                        <button class="btn btn-primary" id="run-btn" onclick="runPipeline()">実行 →</button>
+                    </div>
+
+                    <div class="loading-bar" id="run-loading" style="display:none;">
+                        <div class="loading-bar-fill" id="run-loading-fill"></div>
+                    </div>
+                </div>
+
+                <!-- Result -->
+                <div class="result-panel" id="run-result">
+                    <h3 style="font-family:var(--font-display);font-size:1.1rem;margin-bottom:1rem;">
+                        実行結果 <span id="result-mode" class="plan-badge" style="margin-left:0.5rem;"></span>
+                    </h3>
+
+                    <div id="result-metrics" class="metrics-grid"></div>
+
+                    <h4
+                        style="font-family:var(--font-display);font-size:0.9rem;margin-top:1.5rem;margin-bottom:0.5rem;color:var(--text-muted);">
+                        Performance Metrics</h4>
+                    <div class="result-json" id="result-performance"></div>
+
+                    <h4
+                        style="font-family:var(--font-display);font-size:0.9rem;margin-top:1rem;margin-bottom:0.5rem;color:var(--text-muted);">
+                        Full Response</h4>
+                    <div class="result-json" id="result-json"></div>
+                </div>
+            </div>
+
+            <!-- Results Tab -->
+            <div id="tab-results" class="tab-content hidden">
+                <div class="dash-header">
+                    <h1 class="dash-title">Results History</h1>
+                </div>
+                <div id="results-list">
+                    <p style="color:var(--text-muted);">パイプラインを実行すると、ここに結果が表示されます。</p>
+                </div>
+            </div>
+
+            <!-- API Keys Tab -->
+            <div id="tab-apikeys" class="tab-content hidden">
+                <div class="dash-header">
+                    <h1 class="dash-title">API Keys</h1>
+                </div>
+                <div id="apikeys-list">
+                    <div class="api-key-row">
+                        <span class="api-key-value" id="current-key-display">••••••••••••••••••••</span>
+                        <button class="btn btn-secondary btn-sm" onclick="toggleKeyVisibility()">表示</button>
+                        <button class="btn btn-secondary btn-sm" onclick="copyKey()">コピー</button>
+                    </div>
+                </div>
+                <div style="margin-top:2rem;">
+                    <h3 style="font-family:var(--font-display);font-size:1rem;margin-bottom:1rem;">API Usage</h3>
+                    <div class="result-json">
+                        curl -X POST https://your-domain/api/growth/run \
+                        -H "X-API-Key: YOUR_API_KEY" \
+                        -H "Content-Type: application/json" \
+                        -d '{
+                        "blueprint": {
+                        "business_model": "b2b",
+                        "entity_config": {"type": "organization", "industry": "saas"},
+                        "trust_config": {"method": "challenger"},
+                        "conversion_config": {"mode": "b2b"},
+                        "acquisition_config": {"channels": {}}
+                        }
+                        }'</div>
+                </div>
+            </div>
+
+            <!-- Settings Tab -->
+            <div id="tab-settings" class="tab-content hidden">
+                <div class="dash-header">
+                    <h1 class="dash-title">Settings</h1>
+                </div>
+                <div class="dash-card" style="max-width:500px;">
+                    <h3>Account</h3>
+                    <p style="margin-top:0.5rem;color:var(--text-secondary);font-size:0.9rem;">
+                        テナントID: <strong id="settings-tenant-id">—</strong><br>
+                        プラン: <strong id="settings-plan">—</strong>
+                    </p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+
+</html>
