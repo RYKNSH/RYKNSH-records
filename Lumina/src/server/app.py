@@ -11,6 +11,8 @@ from typing import Optional
 from pydantic import BaseModel, Field
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
 from src.models.state import AssetType, GenerationStatus, LuminaState, QualityTier
 from src.registry.client import ModelRegistryClient
@@ -34,6 +36,21 @@ app.add_middleware(
 # グローバルインスタンス
 registry = ModelRegistryClient()
 marketplace = StylePackMarketplace()
+
+# Static files (Dashboard UI)
+import pathlib
+_static_dir = pathlib.Path(__file__).parent.parent.parent / "static"
+if _static_dir.exists():
+    app.mount("/static", StaticFiles(directory=str(_static_dir)), name="static")
+
+
+@app.get("/")
+async def root():
+    """Dashboard UI"""
+    index = _static_dir / "index.html"
+    if index.exists():
+        return FileResponse(str(index))
+    return {"message": "Lumina API — /docs for API documentation"}
 
 
 # ===============================

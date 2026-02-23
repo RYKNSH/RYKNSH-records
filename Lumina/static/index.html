@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lumina — AI Creative Production</title>
+    <meta name="description" content="世界最高峰のクリエイティブを全自動で生成するAIプロダクション">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header__brand">
+            <span class="header__icon">◈</span>
+            <span class="header__name">Lumina</span>
+        </div>
+        <nav class="header__nav">
+            <a href="#generate" class="header__link active" data-tab="generate">Generate</a>
+            <a href="#gallery" class="header__link" data-tab="gallery">Gallery</a>
+            <a href="#models" class="header__link" data-tab="models">Models</a>
+            <a href="#packs" class="header__link" data-tab="packs">Style Packs</a>
+            <a href="#status" class="header__link" data-tab="status">System</a>
+        </nav>
+        <div class="header__status" id="apiStatus">
+            <span class="status-dot"></span>
+            <span class="status-text">Stub Mode</span>
+        </div>
+    </header>
+
+    <main class="main">
+        <!-- Generate Tab -->
+        <section class="tab-content active" id="tab-generate">
+            <div class="generate-layout">
+                <div class="generate-form">
+                    <h1 class="section-title">Create<span class="accent">.</span></h1>
+                    <p class="section-desc">ブリーフを入力するだけ。残りはLuminaが全て処理する。</p>
+
+                    <div class="form-group">
+                        <label for="brief">Creative Brief</label>
+                        <textarea id="brief" rows="4" placeholder="サイバーパンクな東京の夜景、ネオンに輝く路地裏、雨に濡れたアスファルト..."></textarea>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="qualityTier">Quality Tier</label>
+                            <select id="qualityTier">
+                                <option value="preview">Preview — 即時生成</option>
+                                <option value="standard" selected>Standard — 品質保証</option>
+                                <option value="premium">Premium — マルチモデル合成</option>
+                                <option value="masterpiece">Masterpiece — 6 Critic審査</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="tenantId">Tenant ID</label>
+                            <input type="text" id="tenantId" placeholder="acme-corp">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="stylePack">Style Pack (Optional)</label>
+                        <select id="stylePack">
+                            <option value="">None</option>
+                        </select>
+                    </div>
+
+                    <button class="btn-generate" id="generateBtn" onclick="generateAsset()">
+                        <span class="btn-text">Generate</span>
+                        <span class="btn-loader" hidden>
+                            <span class="spinner"></span> Processing...
+                        </span>
+                    </button>
+                </div>
+
+                <div class="generate-preview">
+                    <div class="preview-card" id="previewCard">
+                        <div class="preview-placeholder" id="previewPlaceholder">
+                            <div class="preview-icon">◈</div>
+                            <p>生成された作品がここに表示されます</p>
+                        </div>
+                        <div class="preview-result" id="previewResult" hidden>
+                            <div class="result-image" id="resultImage"></div>
+                            <div class="result-meta">
+                                <div class="meta-row">
+                                    <span class="meta-label">Status</span>
+                                    <span class="meta-value" id="resultStatus">—</span>
+                                </div>
+                                <div class="meta-row">
+                                    <span class="meta-label">Model</span>
+                                    <span class="meta-value" id="resultModel">—</span>
+                                </div>
+                                <div class="meta-row">
+                                    <span class="meta-label">Taste Score</span>
+                                    <span class="meta-value" id="resultScore">—</span>
+                                </div>
+                                <div class="meta-row">
+                                    <span class="meta-label">Request ID</span>
+                                    <span class="meta-value mono" id="resultId">—</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Gallery Tab -->
+        <section class="tab-content" id="tab-gallery">
+            <h1 class="section-title">Gallery<span class="accent">.</span></h1>
+            <p class="section-desc">生成された作品一覧</p>
+            <div class="gallery-grid" id="galleryGrid">
+                <div class="gallery-empty">まだ作品がありません。Generateタブから生成してください。</div>
+            </div>
+        </section>
+
+        <!-- Models Tab -->
+        <section class="tab-content" id="tab-models">
+            <h1 class="section-title">Models<span class="accent">.</span></h1>
+            <p class="section-desc">利用可能なAIモデル</p>
+            <div class="models-grid" id="modelsGrid"></div>
+        </section>
+
+        <!-- Style Packs Tab -->
+        <section class="tab-content" id="tab-packs">
+            <h1 class="section-title">Style Packs<span class="accent">.</span></h1>
+            <p class="section-desc">C2C マーケットプレイス</p>
+            <div class="packs-grid" id="packsGrid"></div>
+        </section>
+
+        <!-- System Tab -->
+        <section class="tab-content" id="tab-status">
+            <h1 class="section-title">System<span class="accent">.</span></h1>
+            <p class="section-desc">API接続状態 & グラフ仕様</p>
+            <div class="system-grid">
+                <div class="system-card" id="configCard">
+                    <h3>API Connection</h3>
+                    <div class="system-body" id="configBody">Loading...</div>
+                </div>
+                <div class="system-card" id="graphCard">
+                    <h3>Graph Architecture</h3>
+                    <div class="system-body" id="graphBody">Loading...</div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>
