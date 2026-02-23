@@ -106,7 +106,7 @@ class TestAdOptimizer:
 
 class TestFullGrowthGraph:
     @pytest.mark.asyncio
-    async def test_10_node_pipeline(self):
+    async def test_full_pipeline_with_conversion(self):
         blueprint = {
             "blueprint_id": "test",
             "tenant_id": "test",
@@ -126,9 +126,9 @@ class TestFullGrowthGraph:
         assert "campaign" in result
         assert "ad_plan" in result
 
-        # 10 nodes executed
+        # 14 nodes (10 shared + 4 B2B, default mode=b2b)
         metrics = result.get("node_metrics", [])
-        assert len(metrics) == 10
+        assert len(metrics) == 14
 
     @pytest.mark.asyncio
     async def test_no_errors(self):

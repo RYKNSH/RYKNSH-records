@@ -40,6 +40,19 @@ class CyrusState(TypedDict, total=False):
     qualified_leads: list[dict[str, Any]]
 
     # --- Conversion Layer outputs ---
+    # B2B Pipeline
+    nurture_sequence: dict[str, Any]
+    proposal: dict[str, Any]
+    meeting: dict[str, Any]
+    close_strategy: dict[str, Any]
+    # B2C Pipeline
+    activation: dict[str, Any]
+    retention_plan: dict[str, Any]
+    monetization: dict[str, Any]
+    # C2C Pipeline
+    onboarding: dict[str, Any]
+    trust_building: dict[str, Any]
+    marketplace_strategy: dict[str, Any]
     pipeline_results: list[dict[str, Any]]
 
     # --- Evolution Layer outputs ---

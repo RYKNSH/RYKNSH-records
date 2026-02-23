@@ -208,5 +208,5 @@ class TestGrowthGraph:
         }
         result = await run_growth(blueprint)
         metrics = result.get("node_metrics", [])
-        # 10 nodes: market_scanner, icp_profiler, signal_detector, trust_engine, outbound, inbound, content, viral, campaign, ads
-        assert len(metrics) == 10
+        # 14 nodes (10 shared + 4 B2B pipeline, default mode=b2b)
+        assert len(metrics) == 14
