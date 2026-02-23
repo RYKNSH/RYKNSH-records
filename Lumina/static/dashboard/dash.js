@@ -36,8 +36,12 @@ function handleLogout() {
 }
 
 function showDashboard(session) {
-    document.getElementById('authOverlay').hidden = true;
-    document.getElementById('app').hidden = false;
+    const overlay = document.getElementById('authOverlay');
+    overlay.hidden = true;
+    overlay.style.display = 'none';
+    const appEl = document.getElementById('app');
+    appEl.hidden = false;
+    appEl.style.display = 'flex';
     document.getElementById('userEmail').textContent = session.email;
     document.querySelector('.avatar').textContent = session.email[0].toUpperCase();
     loadApiKeys(session);
@@ -88,6 +92,11 @@ async function dashGenerate() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body),
         });
+        if (!res.ok) {
+            const errText = await res.text();
+            showDashResult({ status: 'failed', error: `Server Error ${res.status}: ${errText.slice(0, 120)}` }, brief);
+            return;
+        }
         const data = await res.json();
         showDashResult(data, brief);
         saveToHistory(data, brief);
