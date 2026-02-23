@@ -46,11 +46,29 @@ if _static_dir.exists():
 
 @app.get("/")
 async def root():
-    """Dashboard UI"""
-    index = _static_dir / "index.html"
-    if index.exists():
-        return FileResponse(str(index))
+    """Landing Page"""
+    lp = _static_dir / "lp" / "index.html"
+    if lp.exists():
+        return FileResponse(str(lp))
     return {"message": "Lumina API — /docs for API documentation"}
+
+
+@app.get("/lp/")
+async def landing_page():
+    """Landing Page (alias)"""
+    lp = _static_dir / "lp" / "index.html"
+    if lp.exists():
+        return FileResponse(str(lp))
+    return {"message": "LP not found"}
+
+
+@app.get("/dashboard/")
+async def dashboard():
+    """SaaS Dashboard"""
+    dash = _static_dir / "dashboard" / "index.html"
+    if dash.exists():
+        return FileResponse(str(dash))
+    return {"message": "Dashboard not found"}
 
 
 # ===============================

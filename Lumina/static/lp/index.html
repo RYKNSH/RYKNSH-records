@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lumina — デザイナー0名で、世界最高峰のクリエイティブを</title>
+    <meta name="description" content="AIが審美眼を持ち、自ら品質を判断し、自ら進化する。世界初の自律型AIクリエイティブプロダクション。">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg: #06060b;
+            --bg-2: #0c0c16;
+            --bg-3: #14142a;
+            --bg-card: #1a1a30;
+            --border: #2a2a4a;
+            --text: #e8e8f0;
+            --text-2: #9090b0;
+            --text-3: #606080;
+            --accent: #a78bfa;
+            --accent-2: #818cf8;
+            --accent-glow: rgba(167, 139, 250, 0.12);
+            --gradient: linear-gradient(135deg, #a78bfa 0%, #818cf8 50%, #6366f1 100%);
+            --success: #34d399;
+            --gold: #fbbf24;
+            --font: 'Space Grotesk', 'Noto Sans JP', sans-serif;
+            --mono: 'JetBrains Mono', monospace;
+        }
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text);
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ===== Navigation ===== */
+        .nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 999;
+            padding: 1rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            backdrop-filter: blur(16px);
+            background: rgba(6, 6, 11, 0.7);
+            border-bottom: 1px solid transparent;
+            transition: border-color 0.3s;
+        }
+
+        .nav.scrolled {
+            border-color: var(--border);
+        }
+
+        .nav__logo {
+            font-size: 1.2rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav__logo span {
+            color: var(--accent);
+            font-size: 1.6rem;
+        }
+
+        .nav__links {
+            display: flex;
+            gap: 2rem;
+        }
+
+        .nav__links a {
+            color: var(--text-2);
+            text-decoration: none;
+            font-size: 0.88rem;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav__links a:hover {
+            color: var(--text);
+        }
+
+        .nav__cta {
+            background: var(--gradient);
+            color: #fff;
+            border: none;
+            padding: 0.6rem 1.5rem;
+            border-radius: 6px;
+            font-family: var(--font);
+            font-size: 0.88rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .nav__cta:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 32px var(--accent-glow);
+        }
+
+        /* ===== Hero ===== */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 6rem 2rem 4rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -30%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, rgba(167, 139, 250, 0.08) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .hero__badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.4rem 1rem;
+            background: var(--accent-glow);
+            border: 1px solid var(--border);
+            border-radius: 99px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            color: var(--accent);
+            margin-bottom: 2rem;
+        }
+
+        .hero__badge::before {
+            content: '◈';
+        }
+
+        .hero h1 {
+            font-size: clamp(2.5rem, 6vw, 5rem);
+            font-weight: 700;
+            line-height: 1.1;
+            letter-spacing: -0.04em;
+            margin-bottom: 1.5rem;
+            max-width: 900px;
+        }
+
+        .hero h1 .gradient-text {
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero p {
+            font-size: clamp(1rem, 2vw, 1.25rem);
+            color: var(--text-2);
+            max-width: 600px;
+            margin: 0 auto 2.5rem;
+            line-height: 1.7;
+        }
+
+        .hero__actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn-primary {
+            background: var(--gradient);
+            color: #fff;
+            border: none;
+            padding: 0.85rem 2.2rem;
+            border-radius: 8px;
+            font-family: var(--font);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 40px var(--accent-glow);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text);
+            border: 1px solid var(--border);
+            padding: 0.85rem 2.2rem;
+            border-radius: 8px;
+            font-family: var(--font);
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background 0.2s, border-color 0.2s;
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-3);
+            border-color: var(--accent);
+        }
+
+        /* ===== Stats Bar ===== */
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 4rem;
+            padding: 3rem 2rem;
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-2);
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat__number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .stat__label {
+            font-size: 0.82rem;
+            color: var(--text-3);
+            margin-top: 0.3rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        /* ===== Problem Section ===== */
+        .section {
+            padding: 6rem 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section__tag {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            margin-bottom: 1rem;
+        }
+
+        .section__title {
+            font-size: clamp(1.8rem, 4vw, 2.8rem);
+            font-weight: 700;
+            line-height: 1.2;
+            letter-spacing: -0.03em;
+            margin-bottom: 1.2rem;
+        }
+
+        .section__desc {
+            font-size: 1.05rem;
+            color: var(--text-2);
+            line-height: 1.7;
+            max-width: 680px;
+            margin-bottom: 3rem;
+        }
+
+        .problem-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+        }
+
+        .problem-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2rem;
+            transition: border-color 0.2s, transform 0.2s;
+        }
+
+        .problem-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-3px);
+        }
+
+        .problem-card__icon {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .problem-card h4 {
+            font-size: 1.05rem;
+            margin-bottom: 0.6rem;
+        }
+
+        .problem-card p {
+            font-size: 0.88rem;
+            color: var(--text-2);
+            line-height: 1.6;
+        }
+
+        /* ===== Solution / Features ===== */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+        }
+
+        .feature-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2.5rem;
+            position: relative;
+            overflow: hidden;
+            transition: border-color 0.3s, transform 0.2s;
+        }
+
+        .feature-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-3px);
+        }
+
+        .feature-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, var(--accent-glow), transparent 70%);
+            pointer-events: none;
+        }
+
+        .feature-card__tier {
+            display: inline-block;
+            padding: 0.25rem 0.6rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: 1rem;
+        }
+
+        .tier-creation {
+            background: rgba(52, 211, 153, 0.15);
+            color: #34d399;
+        }
+
+        .tier-quality {
+            background: rgba(251, 191, 36, 0.15);
+            color: #fbbf24;
+        }
+
+        .tier-delivery {
+            background: rgba(249, 115, 22, 0.15);
+            color: #f97316;
+        }
+
+        .tier-evolution {
+            background: rgba(167, 139, 250, 0.15);
+            color: #a78bfa;
+        }
+
+        .feature-card h4 {
+            font-size: 1.15rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .feature-card p {
+            font-size: 0.88rem;
+            color: var(--text-2);
+            line-height: 1.6;
+        }
+
+        /* ===== How it Works ===== */
+        .steps {
+            display: flex;
+            gap: 2rem;
+            counter-reset: step;
+        }
+
+        .step {
+            flex: 1;
+            position: relative;
+            counter-increment: step;
+        }
+
+        .step::before {
+            content: counter(step);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 48px;
+            height: 48px;
+            background: var(--gradient);
+            border-radius: 50%;
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 1.2rem;
+        }
+
+        .step h4 {
+            font-size: 1.05rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .step p {
+            font-size: 0.85rem;
+            color: var(--text-2);
+            line-height: 1.6;
+        }
+
+        /* ===== Pricing ===== */
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.2rem;
+        }
+
+        .price-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            transition: border-color 0.2s, transform 0.2s;
+            position: relative;
+        }
+
+        .price-card.featured {
+            border-color: var(--accent);
+            box-shadow: 0 0 60px var(--accent-glow);
+        }
+
+        .price-card.featured::before {
+            content: 'POPULAR';
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--gradient);
+            color: #fff;
+            font-size: 0.65rem;
+            font-weight: 700;
+            padding: 0.2rem 0.8rem;
+            border-radius: 99px;
+            letter-spacing: 0.08em;
+        }
+
+        .price-card:hover {
+            transform: translateY(-3px);
+        }
+
+        .price-card__name {
+            font-size: 0.85rem;
+            color: var(--text-3);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 0.8rem;
+        }
+
+        .price-card__amount {
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin-bottom: 0.3rem;
+        }
+
+        .price-card__amount small {
+            font-size: 0.85rem;
+            font-weight: 400;
+            color: var(--text-3);
+        }
+
+        .price-card__desc {
+            font-size: 0.82rem;
+            color: var(--text-2);
+            margin-bottom: 1.5rem;
+        }
+
+        .price-card ul {
+            list-style: none;
+            text-align: left;
+            margin-bottom: 1.5rem;
+        }
+
+        .price-card li {
+            font-size: 0.82rem;
+            color: var(--text-2);
+            padding: 0.4rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .price-card li::before {
+            content: '✓ ';
+            color: var(--success);
+        }
+
+        .price-card__btn {
+            width: 100%;
+            padding: 0.7rem;
+            border-radius: 6px;
+            font-family: var(--font);
+            font-size: 0.88rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text);
+            transition: all 0.2s;
+        }
+
+        .price-card__btn:hover {
+            background: var(--bg-3);
+            border-color: var(--accent);
+        }
+
+        .price-card.featured .price-card__btn {
+            background: var(--gradient);
+            border: none;
+            color: #fff;
+        }
+
+        /* ===== Trust ===== */
+        .trust-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+        }
+
+        .trust-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2rem;
+        }
+
+        .trust-card__metric {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .trust-card h4 {
+            font-size: 0.95rem;
+            margin: 0.5rem 0;
+        }
+
+        .trust-card p {
+            font-size: 0.82rem;
+            color: var(--text-2);
+            line-height: 1.5;
+        }
+
+        /* ===== CTA ===== */
+        .cta {
+            text-align: center;
+            padding: 6rem 2rem;
+            position: relative;
+        }
+
+        .cta::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(167, 139, 250, 0.06) 0%, transparent 70%);
+        }
+
+        .cta h2 {
+            font-size: clamp(2rem, 4vw, 3rem);
+            font-weight: 700;
+            margin-bottom: 1rem;
+            letter-spacing: -0.03em;
+        }
+
+        .cta p {
+            color: var(--text-2);
+            font-size: 1.05rem;
+            margin-bottom: 2.5rem;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* ===== Footer ===== */
+        .footer {
+            border-top: 1px solid var(--border);
+            padding: 3rem 2rem;
+            text-align: center;
+            color: var(--text-3);
+            font-size: 0.82rem;
+        }
+
+        .footer a {
+            color: var(--text-2);
+            text-decoration: none;
+        }
+
+        /* ===== Animations ===== */
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+
+        .reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        @media (max-width: 900px) {
+
+            .problem-grid,
+            .features-grid,
+            .pricing-grid,
+            .trust-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .steps {
+                flex-direction: column;
+            }
+
+            .stats {
+                flex-direction: column;
+                gap: 2rem;
+            }
+
+            .nav__links {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Nav -->
+    <nav class="nav" id="nav">
+        <div class="nav__logo"><span>◈</span> Lumina</div>
+        <div class="nav__links">
+            <a href="#problem">課題</a>
+            <a href="#features">特徴</a>
+            <a href="#how">仕組み</a>
+            <a href="#pricing">料金</a>
+        </div>
+        <a href="/dashboard/" class="nav__cta">無料で始める</a>
+    </nav>
+
+    <!-- Hero -->
+    <section class="hero">
+        <div>
+            <div class="hero__badge">AI Creative Production Engine</div>
+            <h1>デザイナー<span class="gradient-text">0名</span>で、<br>世界最高峰のクリエイティブを。</h1>
+            <p>Luminaは自ら品質を判断し、自ら進化するAI。ブリーフを入力するだけで、プロのデザインチーム以上のクオリティを、数秒で。</p>
+            <div class="hero__actions">
+                <a href="/dashboard/" class="btn-primary">無料で始める →</a>
+                <a href="#how" class="btn-secondary">仕組みを見る</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats -->
+    <div class="stats reveal">
+        <div class="stat">
+            <div class="stat__number">153</div>
+            <div class="stat__label">テスト全通過</div>
+        </div>
+        <div class="stat">
+            <div class="stat__number">0.15s</div>
+            <div class="stat__label">パイプライン実行</div>
+        </div>
+        <div class="stat">
+            <div class="stat__number">11</div>
+            <div class="stat__label">AI処理ノード</div>
+        </div>
+        <div class="stat">
+            <div class="stat__number">6</div>
+            <div class="stat__label">審美Critic</div>
+        </div>
+    </div>
+
+    <!-- Problem -->
+    <section class="section" id="problem">
+        <div class="section__tag reveal">課題</div>
+        <h2 class="section__title reveal">クリエイティブ制作の<br>ボトルネックを消す。</h2>
+        <p class="section__desc reveal">デザイナーの採用・ディレクション・リテイク。クリエイティブ制作はコストと時間の塊。しかも品質は人間の「感覚」に依存している。</p>
+        <div class="problem-grid reveal">
+            <div class="problem-card">
+                <div class="problem-card__icon">⏱️</div>
+                <h4>時間がかかりすぎる</h4>
+                <p>1つのバナーに企画→デザイン→レビュー→修正で3日。キャンペーンのたびにこれを繰り返す。</p>
+            </div>
+            <div class="problem-card">
+                <div class="problem-card__icon">💸</div>
+                <h4>コストが見合わない</h4>
+                <p>フリーランスに1案5万円。10案出して当たるのは1案。実質50万のコスト。</p>
+            </div>
+            <div class="problem-card">
+                <div class="problem-card__icon">🎰</div>
+                <h4>品質がギャンブル</h4>
+                <p>「いい感じに」が通じない。デザイナーの解釈次第で仕上がりが変わる。再現性がない。</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features -->
+    <section class="section" id="features">
+        <div class="section__tag reveal">解決策</div>
+        <h2 class="section__title reveal">AIが審美眼を持つ。<br>それがLumina。</h2>
+        <p class="section__desc reveal">生成するだけのAIツールとは違う。Luminaは「品質を判断する眼」を持ち、不合格なら自動で再生成する。</p>
+        <div class="features-grid reveal">
+            <div class="feature-card">
+                <span class="feature-card__tier tier-creation">Creation Layer</span>
+                <h4>マルチモデル合成</h4>
+                <p>Flux / DALL-E 3 / Stable Diffusion。3つのAIモデルの出力をレイヤー合成し、単一モデルの天井を突破。</p>
+            </div>
+            <div class="feature-card">
+                <span class="feature-card__tier tier-quality">Quality Fortress</span>
+                <h4>6 Critic 審美評価</h4>
+                <p>構図・色彩・ブランド適合・感情インパクト・IP世界観・ファン期待。6つの観点でVision LLMが採点。不合格なら自動リトライ。</p>
+            </div>
+            <div class="feature-card">
+                <span class="feature-card__tier tier-delivery">Delivery Layer</span>
+                <h4>フォーマット最適化 + 納品</h4>
+                <p>WebP/PNG/SVG自動変換、ブランド一貫性チェック、テナント別パッケージ。即座にCDNへ。</p>
+            </div>
+            <div class="feature-card">
+                <span class="feature-card__tier tier-evolution">Evolution Layer</span>
+                <h4>自律進化</h4>
+                <p>週次でトレンドスキャン → Cross-Validation → Taste Genome更新。AIが自ら進化し、品質が自動的に上がり続ける。</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- How it Works -->
+    <section class="section" id="how">
+        <div class="section__tag reveal">仕組み</div>
+        <h2 class="section__title reveal">3ステップ。それだけ。</h2>
+        <div class="steps reveal">
+            <div class="step">
+                <h4>ブリーフを入力</h4>
+                <p>「サイバーパンクな東京の夜景」— 自然言語で伝えるだけ。キーワード、ムード、スタイルを自動解析。</p>
+            </div>
+            <div class="step">
+                <h4>AIが品質保証</h4>
+                <p>最適モデル選択 → 生成 → 6 Critic審査 → 不合格なら自動リトライ。人間のレビューは不要。</p>
+            </div>
+            <div class="step">
+                <h4>即座に納品</h4>
+                <p>フォーマット最適化 + ブランドチェック + パッケージング。API or ダッシュボードから即ダウンロード。</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing -->
+    <section class="section" id="pricing">
+        <div class="section__tag reveal">料金</div>
+        <h2 class="section__title reveal">使った分だけ。</h2>
+        <p class="section__desc reveal">全プランで全機能利用可能。違いは品質ティアと月間生成数のみ。</p>
+        <div class="pricing-grid reveal">
+            <div class="price-card">
+                <div class="price-card__name">Preview</div>
+                <div class="price-card__amount">¥0<small>/月</small></div>
+                <div class="price-card__desc">即時プレビュー専用</div>
+                <ul>
+                    <li>月50回生成</li>
+                    <li>品質チェックなし</li>
+                    <li>1モデル</li>
+                    <li>Web出力のみ</li>
+                </ul>
+                <button class="price-card__btn" onclick="location.href='/dashboard/'">始める</button>
+            </div>
+            <div class="price-card featured">
+                <div class="price-card__name">Standard</div>
+                <div class="price-card__amount">¥9,800<small>/月</small></div>
+                <div class="price-card__desc">品質保証付きの本番運用</div>
+                <ul>
+                    <li>月500回生成</li>
+                    <li>4 Critic品質保証</li>
+                    <li>全モデル利用可</li>
+                    <li>API アクセス</li>
+                    <li>リトライ上限3回</li>
+                </ul>
+                <button class="price-card__btn" onclick="location.href='/dashboard/'">始める</button>
+            </div>
+            <div class="price-card">
+                <div class="price-card__name">Premium</div>
+                <div class="price-card__amount">¥29,800<small>/月</small></div>
+                <div class="price-card__desc">マルチモデル合成</div>
+                <ul>
+                    <li>月2,000回生成</li>
+                    <li>4 Critic + 合成</li>
+                    <li>マルチモデル合成</li>
+                    <li>優先サポート</li>
+                    <li>リトライ上限5回</li>
+                </ul>
+                <button class="price-card__btn" onclick="location.href='/dashboard/'">始める</button>
+            </div>
+            <div class="price-card">
+                <div class="price-card__name">Masterpiece</div>
+                <div class="price-card__amount">¥98,000<small>/月</small></div>
+                <div class="price-card__desc">IP / ブランド案件向け</div>
+                <ul>
+                    <li>無制限生成</li>
+                    <li>6 Critic完全審査</li>
+                    <li>IP世界観チェック</li>
+                    <li>専用 Reference Set</li>
+                    <li>リトライ上限10回</li>
+                </ul>
+                <button class="price-card__btn" onclick="location.href='/dashboard/'">相談する</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Trust -->
+    <section class="section">
+        <div class="section__tag reveal">実績</div>
+        <h2 class="section__title reveal">数字で証明する。</h2>
+        <div class="trust-grid reveal">
+            <div class="trust-card">
+                <div class="trust-card__metric">Grade A+</div>
+                <h4>テスト品質スコア 90.8/100</h4>
+                <p>World-Class Test Patterns L0-L6、7アーキタイプ全通過。モックゼロ。完全決定的テスト。</p>
+            </div>
+            <div class="trust-card">
+                <div class="trust-card__metric">4段階</div>
+                <h4>AIエスカレーションチェーン</h4>
+                <p>品質不合格 → 自動リトライ → 手法変更 → ティア昇格 → Creative Decomposition。4段階で天井を突破。</p>
+            </div>
+            <div class="trust-card">
+                <div class="trust-card__metric">週次</div>
+                <h4>自律進化サイクル</h4>
+                <p>トレンドスキャン → Cross-Validation → Taste Genome更新。一過性バズを排除し、持続的なトレンドのみ採用。</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="cta">
+        <h2 class="reveal">デザイナーを雇うのを<br><span class="gradient-text">やめよう。</span></h2>
+        <p class="reveal">Luminaが全部やる。今すぐ始めよう。</p>
+        <a href="/dashboard/" class="btn-primary reveal">無料で始める →</a>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>© 2026 Lumina by RYKNSH Records. All rights reserved.</p>
+    </footer>
+
+    <script>
+        // Scroll reveal
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+        }, { threshold: 0.1 });
+        document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+        // Nav scroll
+        window.addEventListener('scroll', () => {
+            document.getElementById('nav').classList.toggle('scrolled', window.scrollY > 50);
+        });
+    </script>
+</body>
+
+</html>
